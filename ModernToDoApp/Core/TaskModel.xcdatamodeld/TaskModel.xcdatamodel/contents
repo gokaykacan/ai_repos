@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="21513" systemVersion="22A380" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="YES" userDefinedModelVersionIdentifier="">
+    <entity name="Task" representedClassName="Task" syncable="YES" codeGenerationType="class">
+        <attribute name="createdAt" optional="YES" attributeType="Date" usedWithCloudKit="YES"/>
+        <attribute name="dueDate" optional="YES" attributeType="Date" usedWithCloudKit="YES"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usedWithCloudKit="YES"/>
+        <attribute name="isCompleted" optional="YES" attributeType="Boolean" defaultValueString="NO" usedWithCloudKit="YES"/>
+        <attribute name="notes" optional="YES" attributeType="String" usedWithCloudKit="YES"/>
+        <attribute name="priority" optional="YES" attributeType="Integer 16" defaultValueString="1" usedWithCloudKit="YES"/>
+        <attribute name="title" optional="YES" attributeType="String" usedWithCloudKit="YES"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usedWithCloudKit="YES"/>
+        <relationship name="category" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="TaskCategory" inverseName="tasks" inverseEntity="TaskCategory"/>
+        <relationship name="parentTask" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Task" inverseName="subtasks" inverseEntity="Task"/>
+        <relationship name="subtasks" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Task" inverseName="parentTask" inverseEntity="Task"/>
+    </entity>
+    <entity name="TaskCategory" representedClassName="TaskCategory" syncable="YES" codeGenerationType="class">
+        <attribute name="colorHex" optional="YES" attributeType="String" usedWithCloudKit="YES"/>
+        <attribute name="createdAt" optional="YES" attributeType="Date" usedWithCloudKit="YES"/>
+        <attribute name="icon" optional="YES" attributeType="String" usedWithCloudKit="YES"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usedWithCloudKit="YES"/>
+        <attribute name="name" optional="YES" attributeType="String" usedWithCloudKit="YES"/>
+        <attribute name="sortOrder" optional="YES" attributeType="Integer 16" defaultValueString="0" usedWithCloudKit="YES"/>
+        <relationship name="tasks" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Task" inverseName="category" inverseEntity="Task"/>
+    </entity>
+</model>
