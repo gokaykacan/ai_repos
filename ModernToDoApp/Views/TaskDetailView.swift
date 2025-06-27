@@ -10,7 +10,11 @@ struct TaskDetailView: View {
     @State private var title: String
     @State private var notes: String
     @State private var priority: TaskPriority
-    @State private var dueDate: Date?
+    @State private var dueDate: Date? {
+        didSet {
+            hasDueDate = (dueDate != nil)
+        }
+    }
     @State private var hasDueDate: Bool
     @State private var selectedCategory: TaskCategory?
     @State private var showingDatePicker = false
@@ -115,14 +119,7 @@ struct TaskDetailView: View {
                 }
             
             if hasDueDate {
-                DatePicker(
-                    "Due date",
-                    selection: Binding(
-                        get: { dueDate ?? Date() },
-                        set: { dueDate = $0 }
-                    ),
-                    displayedComponents: [.date, .hourAndMinute]
-                )
+                CustomDatePickerField(date: $dueDate)
             }
         }
     }

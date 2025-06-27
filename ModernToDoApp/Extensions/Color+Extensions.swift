@@ -35,8 +35,8 @@ extension Color {
         
         uiColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
         
-        let rgb: Int = (Int)(red * 255) << 16 | (Int)(green * 255) << 8 | (Int)(blue * 255) << 0
+        let rgb: UInt32 = (UInt32(red * 255) << 16) | (UInt32(green * 255) << 8) | UInt32(blue * 255)
         
-        return String(format: "#%06x", rgb)
+        return String(format: "#%06X", rgb) // Use %06X for RGB only
     }
 }

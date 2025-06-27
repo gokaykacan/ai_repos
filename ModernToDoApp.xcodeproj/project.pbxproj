@@ -20,6 +20,11 @@
 		1A00011F000000000000001 /* Task+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000127000000000000001 /* Task+Extensions.swift */; };
 		1A00012A000000000000001 /* TaskCategory+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000128000000000000001 /* TaskCategory+Extensions.swift */; };
 		1A00012B000000000000001 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00012D000000000000001 /* NotificationManager.swift */; };
+		6E57FA272E0F2A2500B6364B /* AnimatedCheckbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E57FA262E0F2A2500B6364B /* AnimatedCheckbox.swift */; };
+		6E57FA292E0F2AF000B6364B /* PriorityIndicatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E57FA282E0F2AF000B6364B /* PriorityIndicatorView.swift */; };
+		6E57FA2B2E0F302300B6364B /* FloatingActionButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E57FA2A2E0F302300B6364B /* FloatingActionButton.swift */; };
+		6E57FA2D2E0F317000B6364B /* CustomDatePickerField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E57FA2C2E0F317000B6364B /* CustomDatePickerField.swift */; };
+		6E57FA2F2E0F357F00B6364B /* ProductivityChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E57FA2E2E0F357F00B6364B /* ProductivityChartView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -37,6 +42,11 @@
 		1A000127000000000000001 /* Task+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Task+Extensions.swift"; sourceTree = "<group>"; };
 		1A000128000000000000001 /* TaskCategory+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TaskCategory+Extensions.swift"; sourceTree = "<group>"; };
 		1A00012D000000000000001 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
+		6E57FA262E0F2A2500B6364B /* AnimatedCheckbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedCheckbox.swift; sourceTree = "<group>"; };
+		6E57FA282E0F2AF000B6364B /* PriorityIndicatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriorityIndicatorView.swift; sourceTree = "<group>"; };
+		6E57FA2A2E0F302300B6364B /* FloatingActionButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingActionButton.swift; sourceTree = "<group>"; };
+		6E57FA2C2E0F317000B6364B /* CustomDatePickerField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomDatePickerField.swift; sourceTree = "<group>"; };
+		6E57FA2E2E0F357F00B6364B /* ProductivityChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductivityChartView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -104,6 +114,11 @@
 		1A000115000000000000001 /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				6E57FA2E2E0F357F00B6364B /* ProductivityChartView.swift */,
+				6E57FA2C2E0F317000B6364B /* CustomDatePickerField.swift */,
+				6E57FA2A2E0F302300B6364B /* FloatingActionButton.swift */,
+				6E57FA282E0F2AF000B6364B /* PriorityIndicatorView.swift */,
+				6E57FA262E0F2A2500B6364B /* AnimatedCheckbox.swift */,
 				1A0001020000000000000001 /* ContentView.swift */,
 			);
 			path = Features;
@@ -231,14 +246,19 @@
 				1A000113000000000000001 /* TaskModel.xcdatamodeld in Sources */,
 				1A0001030000000000000001 /* ContentView.swift in Sources */,
 				1A0001010000000000000001 /* ModernToDoAppApp.swift in Sources */,
+				6E57FA272E0F2A2500B6364B /* AnimatedCheckbox.swift in Sources */,
 				1A000110000000000000001 /* CoreDataStack.swift in Sources */,
 				1A000117000000000000001 /* TaskDetailView.swift in Sources */,
 				1A000119000000000000001 /* CategoryDetailView.swift in Sources */,
+				6E57FA2D2E0F317000B6364B /* CustomDatePickerField.swift in Sources */,
 				1A00011B000000000000001 /* TaskPriority.swift in Sources */,
+				6E57FA2F2E0F357F00B6364B /* ProductivityChartView.swift in Sources */,
 				1A00011D000000000000001 /* Color+Extensions.swift in Sources */,
+				6E57FA2B2E0F302300B6364B /* FloatingActionButton.swift in Sources */,
 				1A00011F000000000000001 /* Task+Extensions.swift in Sources */,
 				1A00012A000000000000001 /* TaskCategory+Extensions.swift in Sources */,
 				1A00012B000000000000001 /* NotificationManager.swift in Sources */,
+				6E57FA292E0F2AF000B6364B /* PriorityIndicatorView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -377,9 +397,9 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -406,9 +426,9 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
