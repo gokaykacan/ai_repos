@@ -263,12 +263,21 @@ The test suite includes comprehensive unit tests in `ModernToDoAppTests/`:
   - App badge clears immediately when opening app
   - Notification count accurately reflects all unread notifications
 
+### Swipe-to-Complete Implementation (Latest Update)
+- **Checkbox System Removal**: Completely removed problematic AnimatedCheckbox component that caused inconsistent toggle behavior
+- **Swipe-to-Complete**: Implemented leading edge swipe gesture for task completion with green/orange color coding
+- **Visual Indicators**: Added green completion bar and checkmark icon for completed tasks
+- **Real-time UI Updates**: Fixed UI reactivity by removing manual caching system that blocked SwiftUI's automatic updates
+- **Dynamic Task Movement**: Tasks now move between categories (Overdue, Today, Completed, etc.) instantly without app restart
+- **Performance Optimized**: Added haptic feedback and smooth animations with error recovery
+- **SwiftUI Reactivity**: Replaced cached arrays with computed properties to enable @FetchRequest automatic updates
+
 ### Performance Optimization & Bug Fixes
 - **App Freezing Issues**: Fixed TabView onTapGesture conflicts causing navigation locks
-- **Memory Performance**: Implemented caching system for filtered and grouped tasks
+- **UI Reactivity Fix**: Removed manual caching system that prevented real-time task status updates
 - **Keyboard Dismissal**: Added proper keyboard dismissal on list tap gestures
 - **Category Management**: Simplified binding architecture to prevent sheet opening/closing issues
-- **Animation Performance**: Removed FetchRequest animations that caused UI stutters
+- **Animation Performance**: Added smooth transitions with withAnimation for task completion
 
 ### Category System Improvements
 - **Swipe Actions**: Added leading (delete) and trailing (edit) swipe gestures for categories
@@ -276,7 +285,23 @@ The test suite includes comprehensive unit tests in `ModernToDoAppTests/`:
 - **Date Picker Consistency**: Unified postpone and due date picker interfaces with wheel style
 - **UI Consistency**: Standardized button styles and navigation patterns
 
-### Technical Details
+### Technical Details - Swipe-to-Complete System
+- **Task Completion Methods**:
+  1. Swipe left (leading edge) → "Complete"/"Incomplete" toggle with visual feedback
+  2. Context menu → "Mark Complete"/"Mark Incomplete" option
+  3. Automatic parent task completion when all subtasks are done
+- **Visual Feedback**:
+  - Green completion bar (4px width) on left side for completed tasks
+  - Green checkmark icon next to task title for completed items
+  - Haptic feedback on completion toggle
+  - Smooth 0.3s easeInOut animation transitions
+- **Real-time Updates**:
+  - Tasks instantly move between sections (Overdue → Completed, etc.)
+  - No app restart or manual refresh required
+  - SwiftUI computed properties ensure automatic UI reactivity
+- **Error Handling**: Automatic rollback on Core Data save failures
+
+### Technical Details - Category System
 - Category creation now works from both:
   1. FloatingActionButton → "Add Category" sub-action
   2. Categories tab → "+" toolbar button
