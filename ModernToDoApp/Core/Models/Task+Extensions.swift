@@ -61,4 +61,23 @@ extension Task {
         let completedCount = completedSubtasks.count
         return Double(completedCount) / Double(totalSubtasks)
     }
+    
+    // Auto-complete parent task when all subtasks are completed
+    func updateParentCompletionIfNeeded() {
+        guard let parentTask = parentTask else { return }
+        
+        // Check if all subtasks of parent are completed
+        let allSubtasksCompleted = parentTask.subtaskArray.allSatisfy { $0.isCompleted }
+        
+        // Auto-complete parent if all subtasks are done and parent is not completed
+        if allSubtasksCompleted && !parentTask.isCompleted {
+            parentTask.isCompleted = true
+            parentTask.updatedAt = Date()
+        }
+        // Auto-incomplete parent if any subtask becomes incomplete and parent was auto-completed
+        else if !allSubtasksCompleted && parentTask.isCompleted && parentTask.subtaskArray.count > 0 {
+            parentTask.isCompleted = false
+            parentTask.updatedAt = Date()
+        }
+    }
 }

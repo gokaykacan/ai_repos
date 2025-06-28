@@ -62,8 +62,6 @@ struct TaskListView: View {
     @State private var searchText = ""
     @State private var selectedCategory: TaskCategory?
     @AppStorage("showCompletedTasks") private var showCompletedTasks = true
-    @State private var cachedFilteredTasks: [Task] = []
-    @State private var cachedGroupedTasks: [TaskSection] = []
     let showAddTask: () -> Void
     
     @FetchRequest(
@@ -78,7 +76,7 @@ struct TaskListView: View {
         sortDescriptors: [NSSortDescriptor(keyPath: \TaskCategory.name, ascending: true)])
     private var categories: FetchedResults<TaskCategory>
     
-    private func updateFilteredTasks() {
+    private var filteredTasks: [Task] {
         let taskArray = Array(tasks)
         
         // Filter by completed status first
@@ -93,29 +91,28 @@ struct TaskListView: View {
         
         // Then filter by search text if needed
         if searchText.isEmpty {
-            cachedFilteredTasks = categoryFilteredTasks
+            return categoryFilteredTasks
         } else {
-            cachedFilteredTasks = categoryFilteredTasks.filter { task in
+            return categoryFilteredTasks.filter { task in
                 task.title?.localizedCaseInsensitiveContains(searchText) == true ||
                 task.notes?.localizedCaseInsensitiveContains(searchText) == true
             }
         }
-        updateGroupedTasks()
     }
     
-    private func updateGroupedTasks() {
+    private var groupedTasks: [TaskSection] {
         let calendar = Calendar.current
         let now = Date()
 
-        let overdueTasks = cachedFilteredTasks.filter { $0.isOverdue && !$0.isCompleted }
-        let todayTasks = cachedFilteredTasks.filter { $0.isDueToday && !$0.isCompleted && !$0.isOverdue }
-        let tomorrowTasks = cachedFilteredTasks.filter { $0.isDueTomorrow && !$0.isCompleted }
-        let upcomingTasks = cachedFilteredTasks.filter {
+        let overdueTasks = filteredTasks.filter { $0.isOverdue && !$0.isCompleted }
+        let todayTasks = filteredTasks.filter { $0.isDueToday && !$0.isCompleted && !$0.isOverdue }
+        let tomorrowTasks = filteredTasks.filter { $0.isDueTomorrow && !$0.isCompleted }
+        let upcomingTasks = filteredTasks.filter {
             guard let dueDate = $0.dueDate else { return false }
             return !calendar.isDateInToday(dueDate) && !calendar.isDateInTomorrow(dueDate) && dueDate > now && !$0.isCompleted
         }
-        let noDueDateTasks = cachedFilteredTasks.filter { $0.dueDate == nil && !$0.isCompleted }
-        let completedTasks = cachedFilteredTasks.filter { $0.isCompleted }
+        let noDueDateTasks = filteredTasks.filter { $0.dueDate == nil && !$0.isCompleted }
+        let completedTasks = filteredTasks.filter { $0.isCompleted }
 
         var sections: [TaskSection] = []
 
@@ -138,7 +135,7 @@ struct TaskListView: View {
             sections.append(TaskSection(title: "Completed", tasks: completedTasks.sorted { $0.updatedAt ?? Date() > $1.updatedAt ?? Date() }))
         }
 
-        cachedGroupedTasks = sections
+        return sections
     }
     
     var body: some View {
@@ -177,22 +174,23 @@ struct TaskListView: View {
                     }
                     
                     List {
-                        if cachedGroupedTasks.isEmpty && searchText.isEmpty {
+                        if groupedTasks.isEmpty && searchText.isEmpty {
                             Text("No tasks found. Tap '+' to add a new task!")
                                 .foregroundColor(.secondary)
                                 .padding()
-                        } else if cachedGroupedTasks.isEmpty && !searchText.isEmpty {
+                        } else if groupedTasks.isEmpty && !searchText.isEmpty {
                             Text("No tasks found matching your search.")
                                 .foregroundColor(.secondary)
                                 .padding()
                         } else {
-                            ForEach(cachedGroupedTasks) { section in
+                            ForEach(groupedTasks) { section in
                                 Section(header: Text(section.title)) {
                                     ForEach(section.tasks, id: \.self) { task in
                                         TaskRowView(task: task, onTap: {
                                             selectedTask = task
                                         }, onTaskUpdated: {
-                                            updateFilteredTasks()
+                                            // Trigger UI refresh by updating a state variable
+                                            // This ensures SwiftUI re-evaluates the computed properties
                                         })
                                     }
                                     .onDelete { offsets in
@@ -222,21 +220,6 @@ struct TaskListView: View {
                 TaskDetailView(task: task)
             }
         }
-        .onAppear {
-            updateFilteredTasks()
-        }
-        .onChange(of: tasks.count) { _, _ in
-            updateFilteredTasks()
-        }
-        .onChange(of: searchText) { _, _ in
-            updateFilteredTasks()
-        }
-        .onChange(of: selectedCategory) { _, _ in
-            updateFilteredTasks()
-        }
-        .onChange(of: showCompletedTasks) { _, _ in
-            updateFilteredTasks()
-        }
     }
     
     private func deleteItems(for section: TaskSection, at offsets: IndexSet) {
@@ -261,13 +244,11 @@ struct TaskRowView: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            AnimatedCheckbox(isChecked: Binding(
-                get: { task.isCompleted },
-                set: { _ in
-                    toggleCompletion()
-                }
-            ))
-            .buttonStyle(PlainButtonStyle())
+            // Completion status indicator
+            Rectangle()
+                .fill(task.isCompleted ? Color.green : Color.gray.opacity(0.3))
+                .frame(width: 4, height: 40)
+                .cornerRadius(2)
             
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
@@ -278,6 +259,13 @@ struct TaskRowView: View {
                         .strikethrough(task.isCompleted)
                     
                     Spacer()
+                    
+                    // Completion badge
+                    if task.isCompleted {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(.system(size: 16))
+                    }
                     
                     PriorityIndicatorView(priority: task.priorityEnum)
                 }
@@ -366,6 +354,13 @@ struct TaskRowView: View {
             }
             .tint(.orange)
         }
+        .swipeActions(edge: .leading) {
+            Button(task.isCompleted ? "Incomplete" : "Complete") {
+                // Performance optimized toggle
+                performanceOptimizedToggle()
+            }
+            .tint(task.isCompleted ? .orange : .green)
+        }
         .sheet(isPresented: $showingPostponeDatePicker) {
             NavigationView {
                 VStack {
@@ -403,7 +398,7 @@ struct TaskRowView: View {
 
                                     if notificationsEnabled {
                                         NotificationManager.shared.cancelNotification(for: task)
-                                        if let newDueDate = task.dueDate {
+                                        if task.dueDate != nil {
                                             NotificationManager.shared.scheduleNotification(for: task)
                                         }
                                     }
@@ -420,30 +415,78 @@ struct TaskRowView: View {
     }
     
     private func toggleCompletion() {
-        withAnimation {
-            task.isCompleted.toggle()
+        // Simple, reliable toggle without complex logic
+        let newValue = !task.isCompleted
+        
+        // Update task state immediately
+        task.isCompleted = newValue
+        task.updatedAt = Date()
+        
+        // Save Core Data changes
+        do {
+            try viewContext.save()
+            
+            // Handle notifications in background
+            if notificationsEnabled {
+                DispatchQueue.global(qos: .background).async {
+                    self.handleNotificationChange(isCompleted: newValue)
+                }
+            }
+            
+        } catch {
+            // Revert on error
+            print("Error toggling task completion: \(error)")
+            task.isCompleted = !newValue
+            try? viewContext.save()
+        }
+    }
+    
+    private func performanceOptimizedToggle() {
+        // Immediate haptic feedback
+        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+        impactFeedback.impactOccurred()
+        
+        // Use withAnimation for smooth UI transitions
+        withAnimation(.easeInOut(duration: 0.3)) {
+            let newValue = !task.isCompleted
+            
+            // Update task state
+            task.isCompleted = newValue
             task.updatedAt = Date()
             
+            // Update parent task completion if needed
+            task.updateParentCompletionIfNeeded()
+            
+            // Save changes with error handling
             do {
                 try viewContext.save()
                 
-                // Handle notification based on completion status
+                // Handle notifications asynchronously
                 if notificationsEnabled {
-                    if task.isCompleted {
-                        // Cancel notification when task is completed
-                        NotificationManager.shared.cancelNotification(for: task)
-                    } else if task.dueDate != nil {
-                        // Reschedule notification when task is marked incomplete again
-                        NotificationManager.shared.scheduleNotification(for: task)
+                    DispatchQueue.global(qos: .userInitiated).async {
+                        self.handleNotificationChange(isCompleted: newValue)
                     }
                 }
                 
-                // Update the task list cache to reflect changes immediately
+                // Call update callback if provided
                 onTaskUpdated?()
                 
             } catch {
+                // Revert on error
                 print("Error toggling task completion: \(error)")
+                task.isCompleted = !newValue
+                try? viewContext.save()
             }
+        }
+    }
+    
+    private func handleNotificationChange(isCompleted: Bool) {
+        if isCompleted {
+            // Cancel notification when task is completed
+            NotificationManager.shared.cancelNotification(for: task)
+        } else if task.dueDate != nil {
+            // Reschedule notification when task is marked incomplete again
+            NotificationManager.shared.scheduleNotification(for: task)
         }
     }
     

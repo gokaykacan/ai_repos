@@ -1,6 +1,7 @@
 import Foundation
 import UserNotifications
 import UIKit
+import CoreData
 
 class NotificationManager: ObservableObject {
     static let shared = NotificationManager()
@@ -41,7 +42,7 @@ class NotificationManager: ObservableObject {
             }
             
             content.sound = .default
-            // Set badge count for this new notification  
+            // Set badge count for this new notification
             content.badge = NSNumber(value: totalCount + 1)
             
             // Set category based on priority
@@ -117,6 +118,29 @@ class NotificationManager: ObservableObject {
         }
         // Clear delivered notifications to reset the badge count for future notifications
         UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+    }
+    
+    func updateApplicationBadgeNumber() {
+        let context = CoreDataStack.shared.container.viewContext
+        let fetchRequest: NSFetchRequest<Task> = Task.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "isCompleted == NO AND (dueDate <= %@ OR dueDate == nil)", Date() as NSDate)
+
+        do {
+            let incompleteAndDueTasks = try context.fetch(fetchRequest)
+            let badgeCount = incompleteAndDueTasks.filter { task in
+                // Only count tasks that are overdue or due today
+                if let dueDate = task.dueDate {
+                    return Calendar.current.isDateInToday(dueDate) || dueDate < Date()
+                }
+                return false // Don't count tasks without a due date for badge
+            }.count
+            DispatchQueue.main.async {
+                UIApplication.shared.applicationIconBadgeNumber = badgeCount
+                print("Updated application badge number to: \(badgeCount)")
+            }
+        } catch {
+            print("Error fetching tasks for badge update: \(error.localizedDescription)")
+        }
     }
     
     private func getTotalNotificationCount(completion: @escaping (Int) -> Void) {
