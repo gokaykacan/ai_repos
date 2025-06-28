@@ -189,9 +189,11 @@ struct TaskListView: View {
                             ForEach(cachedGroupedTasks) { section in
                                 Section(header: Text(section.title)) {
                                     ForEach(section.tasks, id: \.self) { task in
-                                        TaskRowView(task: task) {
+                                        TaskRowView(task: task, onTap: {
                                             selectedTask = task
-                                        }
+                                        }, onTaskUpdated: {
+                                            updateFilteredTasks()
+                                        })
                                     }
                                     .onDelete { offsets in
                                         deleteItems(for: section, at: offsets)
@@ -253,6 +255,7 @@ struct TaskListView: View {
 struct TaskRowView: View {
     let task: Task
     let onTap: () -> Void
+    let onTaskUpdated: (() -> Void)?
     @Environment(\.managedObjectContext) private var viewContext
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
     
@@ -260,8 +263,7 @@ struct TaskRowView: View {
         HStack(spacing: 12) {
             AnimatedCheckbox(isChecked: Binding(
                 get: { task.isCompleted },
-                set: { newValue in
-                    task.isCompleted = newValue
+                set: { _ in
                     toggleCompletion()
                 }
             ))
@@ -364,12 +366,6 @@ struct TaskRowView: View {
             }
             .tint(.orange)
         }
-        .swipeActions(edge: .leading) {
-            Button(task.isCompleted ? "Incomplete" : "Complete") {
-                toggleCompletion()
-            }
-            .tint(task.isCompleted ? .orange : .green)
-        }
         .sheet(isPresented: $showingPostponeDatePicker) {
             NavigationView {
                 VStack {
@@ -441,6 +437,10 @@ struct TaskRowView: View {
                         NotificationManager.shared.scheduleNotification(for: task)
                     }
                 }
+                
+                // Update the task list cache to reflect changes immediately
+                onTaskUpdated?()
+                
             } catch {
                 print("Error toggling task completion: \(error)")
             }
