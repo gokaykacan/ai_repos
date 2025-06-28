@@ -43,7 +43,7 @@ class NotificationManager: ObservableObject {
             
             content.sound = .default
             // Set badge count for this new notification
-            content.badge = NSNumber(value: totalCount + 1)
+            // content.badge = NSNumber(value: totalCount + 1)
             
             // Set category based on priority
             switch task.priorityEnum {

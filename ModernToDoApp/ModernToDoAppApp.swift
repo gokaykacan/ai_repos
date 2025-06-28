@@ -6,6 +6,7 @@ import UserNotifications
 struct ModernToDoAppApp: App {
     let persistenceController = CoreDataStack.shared
     @AppStorage("isDarkMode") private var isDarkMode = false
+    @Environment(\.scenePhase) private var scenePhase
     
     init() {
         // Request notification permissions
@@ -19,9 +20,12 @@ struct ModernToDoAppApp: App {
                 .onChange(of: isDarkMode) { newValue in
                     applyDarkModePreference(newValue)
                 }
-                .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-                    // Clear badge when app comes to foreground
-                    NotificationManager.shared.clearAppBadge()
+                .onChange(of: scenePhase) { newPhase in
+                    if newPhase == .background {
+                        NotificationManager.shared.updateApplicationBadgeNumber()
+                    } else if newPhase == .active {
+                        NotificationManager.shared.clearAppBadge()
+                    }
                 }
         }
     }
