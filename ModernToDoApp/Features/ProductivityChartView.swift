@@ -13,38 +13,43 @@ struct ProductivityChartView: View {
     @State private var dailyCompletions: [DailyCompletion] = []
 
     var body: some View {
-        VStack {
-            Text("Completed Tasks Over Time")
-                .font(.headline)
-                .padding()
+        NavigationView {
+            VStack {
+                Text("Completed Tasks Over Time")
+                    .font(.headline)
+                    .padding()
 
-            if dailyCompletions.isEmpty {
-                ContentUnavailableView("No completed tasks yet", systemImage: "chart.bar.fill")
-            } else {
-                Chart {
-                    ForEach(dailyCompletions) { data in
-                        BarMark(
-                            x: .value("Date", data.date, unit: .day),
-                            y: .value("Tasks Completed", data.count)
-                        )
-                        .foregroundStyle(Color.accentColor)
+                if dailyCompletions.isEmpty {
+                    ContentUnavailableView("No completed tasks yet", systemImage: "chart.bar.fill")
+                } else {
+                    Chart {
+                        ForEach(dailyCompletions) { data in
+                            BarMark(
+                                x: .value("Date", data.date, unit: .day),
+                                y: .value("Tasks Completed", data.count)
+                            )
+                            .foregroundStyle(Color.accentColor)
+                        }
                     }
-                }
-                .chartXAxis {
-                    AxisMarks(values: .stride(by: .day)) { value in
-                        AxisGridLine()
-                        AxisTick()
-                        AxisValueLabel(format: .dateTime.day())
+                    .chartXAxis {
+                        AxisMarks(values: .stride(by: .day)) { value in
+                            AxisGridLine()
+                            AxisTick()
+                            AxisValueLabel(format: .dateTime.day())
+                        }
                     }
+                    .chartYAxis {
+                        AxisMarks(position: .leading)
+                    }
+                    .padding()
+                    .frame(height: 250)
                 }
-                .chartYAxis {
-                    AxisMarks(position: .leading)
-                }
-                .padding()
-                .frame(height: 250) // Adjust height as needed
+                
+                Spacer()
             }
+            .navigationTitle("Insights")
+            .onAppear(perform: loadDailyCompletions)
         }
-        .onAppear(perform: loadDailyCompletions)
     }
 
     private func loadDailyCompletions() {

@@ -19,6 +19,10 @@ struct ModernToDoAppApp: App {
                 .onChange(of: isDarkMode) { newValue in
                     applyDarkModePreference(newValue)
                 }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                    // Clear badge when app comes to foreground
+                    NotificationManager.shared.clearAppBadge()
+                }
         }
     }
     

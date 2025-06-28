@@ -4,12 +4,11 @@ import UserNotifications
 
 struct ContentView: View {
     @State private var selectedTab = 0
-    @State private var showingAddCategory = false
     @State private var showingAddTask = false
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            TaskListView(selectedTab: $selectedTab, showAddTask: { showingAddTask = true }, showAddCategory: { showingAddCategory = true })
+            TaskListView(selectedTab: $selectedTab, showAddTask: { showingAddTask = true })
                 .tabItem {
                     Image(systemName: "list.bullet")
                     Text("Tasks")
@@ -17,7 +16,7 @@ struct ContentView: View {
                 .tag(0)
                 .transition(.slide)
             
-            CategoriesView(externalShowingAddCategory: $showingAddCategory)
+            CategoriesView()
                 .tabItem {
                     Image(systemName: "folder")
                     Text("Categories")
@@ -47,9 +46,6 @@ struct ContentView: View {
         .sheet(isPresented: $showingAddTask) {
             TaskDetailView()
         }
-        .sheet(isPresented: $showingAddCategory) {
-            CategoryDetailView()
-        }
     }
 }
 
@@ -66,24 +62,23 @@ struct TaskListView: View {
     @State private var searchText = ""
     @State private var selectedCategory: TaskCategory?
     @AppStorage("showCompletedTasks") private var showCompletedTasks = true
+    @State private var cachedFilteredTasks: [Task] = []
+    @State private var cachedGroupedTasks: [TaskSection] = []
     let showAddTask: () -> Void
-    let showAddCategory: () -> Void
     
     @FetchRequest(
         sortDescriptors: [
             NSSortDescriptor(keyPath: \Task.isCompleted, ascending: true),
             NSSortDescriptor(keyPath: \Task.priority, ascending: false),
             NSSortDescriptor(keyPath: \Task.createdAt, ascending: false)
-        ],
-        animation: .default)
+        ])
     private var tasks: FetchedResults<Task>
     
     @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \TaskCategory.name, ascending: true)],
-        animation: .default)
+        sortDescriptors: [NSSortDescriptor(keyPath: \TaskCategory.name, ascending: true)])
     private var categories: FetchedResults<TaskCategory>
     
-    var filteredTasks: [Task] {
+    private func updateFilteredTasks() {
         let taskArray = Array(tasks)
         
         // Filter by completed status first
@@ -98,28 +93,29 @@ struct TaskListView: View {
         
         // Then filter by search text if needed
         if searchText.isEmpty {
-            return categoryFilteredTasks
+            cachedFilteredTasks = categoryFilteredTasks
         } else {
-            return categoryFilteredTasks.filter { task in
+            cachedFilteredTasks = categoryFilteredTasks.filter { task in
                 task.title?.localizedCaseInsensitiveContains(searchText) == true ||
                 task.notes?.localizedCaseInsensitiveContains(searchText) == true
             }
         }
+        updateGroupedTasks()
     }
     
-    var groupedTasks: [TaskSection] {
+    private func updateGroupedTasks() {
         let calendar = Calendar.current
         let now = Date()
 
-        let overdueTasks = filteredTasks.filter { $0.isOverdue && !$0.isCompleted }
-        let todayTasks = filteredTasks.filter { $0.isDueToday && !$0.isCompleted && !$0.isOverdue }
-        let tomorrowTasks = filteredTasks.filter { $0.isDueTomorrow && !$0.isCompleted }
-        let upcomingTasks = filteredTasks.filter {
+        let overdueTasks = cachedFilteredTasks.filter { $0.isOverdue && !$0.isCompleted }
+        let todayTasks = cachedFilteredTasks.filter { $0.isDueToday && !$0.isCompleted && !$0.isOverdue }
+        let tomorrowTasks = cachedFilteredTasks.filter { $0.isDueTomorrow && !$0.isCompleted }
+        let upcomingTasks = cachedFilteredTasks.filter {
             guard let dueDate = $0.dueDate else { return false }
             return !calendar.isDateInToday(dueDate) && !calendar.isDateInTomorrow(dueDate) && dueDate > now && !$0.isCompleted
         }
-        let noDueDateTasks = filteredTasks.filter { $0.dueDate == nil && !$0.isCompleted }
-        let completedTasks = filteredTasks.filter { $0.isCompleted }
+        let noDueDateTasks = cachedFilteredTasks.filter { $0.dueDate == nil && !$0.isCompleted }
+        let completedTasks = cachedFilteredTasks.filter { $0.isCompleted }
 
         var sections: [TaskSection] = []
 
@@ -142,7 +138,7 @@ struct TaskListView: View {
             sections.append(TaskSection(title: "Completed", tasks: completedTasks.sorted { $0.updatedAt ?? Date() > $1.updatedAt ?? Date() }))
         }
 
-        return sections
+        cachedGroupedTasks = sections
     }
     
     var body: some View {
@@ -181,16 +177,16 @@ struct TaskListView: View {
                     }
                     
                     List {
-                        if groupedTasks.isEmpty && searchText.isEmpty {
+                        if cachedGroupedTasks.isEmpty && searchText.isEmpty {
                             Text("No tasks found. Tap '+' to add a new task!")
                                 .foregroundColor(.secondary)
                                 .padding()
-                        } else if groupedTasks.isEmpty && !searchText.isEmpty {
+                        } else if cachedGroupedTasks.isEmpty && !searchText.isEmpty {
                             Text("No tasks found matching your search.")
                                 .foregroundColor(.secondary)
                                 .padding()
                         } else {
-                            ForEach(groupedTasks) { section in
+                            ForEach(cachedGroupedTasks) { section in
                                 Section(header: Text(section.title)) {
                                     ForEach(section.tasks, id: \.self) { task in
                                         TaskRowView(task: task) {
@@ -204,6 +200,10 @@ struct TaskListView: View {
                             }
                         }
                     }
+                    .onTapGesture {
+                        // Dismiss keyboard when tapping in empty areas of the list
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    }
                 }
                 .navigationTitle("Tasks")
                 .searchable(text: $searchText, prompt: "Search tasks...")
@@ -211,10 +211,7 @@ struct TaskListView: View {
                 FloatingActionButton(mainAction: {
                     showAddTask()
                 }, subActions: [
-                    (imageName: "doc.badge.plus", action: { showAddTask() }, label: "Add Task"),
-                    (imageName: "folder.badge.plus", action: {
-                        showAddCategory()
-                    }, label: "Add Category")
+                    (imageName: "doc.badge.plus", action: { showAddTask() }, label: "Add Task")
                 ])
                 .padding(.trailing, 20)
                 .padding(.bottom, 20)
@@ -222,6 +219,21 @@ struct TaskListView: View {
             .sheet(item: $selectedTask) { task in
                 TaskDetailView(task: task)
             }
+        }
+        .onAppear {
+            updateFilteredTasks()
+        }
+        .onChange(of: tasks.count) { _, _ in
+            updateFilteredTasks()
+        }
+        .onChange(of: searchText) { _, _ in
+            updateFilteredTasks()
+        }
+        .onChange(of: selectedCategory) { _, _ in
+            updateFilteredTasks()
+        }
+        .onChange(of: showCompletedTasks) { _, _ in
+            updateFilteredTasks()
         }
     }
     
@@ -458,12 +470,11 @@ struct TaskRowView: View {
 
 struct CategoriesView: View {
     @Environment(\.managedObjectContext) private var viewContext
-    @Binding var externalShowingAddCategory: Bool
-    @State private var selectedCategory: TaskCategory?
+    @State private var editingCategory: TaskCategory?
+    @State private var showingAddCategory = false
     
     @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \TaskCategory.sortOrder, ascending: true)],
-        animation: .default)
+        sortDescriptors: [NSSortDescriptor(keyPath: \TaskCategory.sortOrder, ascending: true)])
     private var categories: FetchedResults<TaskCategory>
     
     var body: some View {
@@ -471,11 +482,11 @@ struct CategoriesView: View {
             List {
                 ForEach(categories, id: \.self) { category in
                     CategoryRowView(category: category) {
-                        selectedCategory = category
+                        editingCategory = category
                     }
                     .swipeActions(edge: .trailing) {
                         Button("Edit") {
-                            selectedCategory = category
+                            editingCategory = category
                         }
                         .tint(.blue)
                     }
@@ -490,15 +501,15 @@ struct CategoriesView: View {
             .navigationTitle("Categories")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { externalShowingAddCategory = true }) {
+                    Button(action: { showingAddCategory = true }) {
                         Image(systemName: "plus")
                     }
                 }
             }
-            .sheet(isPresented: $externalShowingAddCategory) {
+            .sheet(isPresented: $showingAddCategory) {
                 CategoryDetailView()
             }
-            .sheet(item: $selectedCategory) { category in
+            .sheet(item: $editingCategory) { category in
                 CategoryDetailView(category: category)
             }
         }
@@ -538,37 +549,37 @@ struct CategoryRowView: View {
     }
     
     var body: some View {
-        HStack(spacing: 12) {
-            Circle()
-                .fill(Color(hex: category.colorHex ?? "#007AFF"))
-                .frame(width: 32, height: 32)
-                .overlay(
-                    Image(systemName: category.icon ?? "folder")
-                        .font(.caption)
-                        .foregroundColor(.white)
-                )
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(category.name ?? "Unnamed Category")
-                    .font(.body)
-                    .fontWeight(.medium)
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                Circle()
+                    .fill(Color(hex: category.colorHex ?? "#007AFF"))
+                    .frame(width: 32, height: 32)
+                    .overlay(
+                        Image(systemName: category.icon ?? "folder")
+                            .font(.caption)
+                            .foregroundColor(.white)
+                    )
                 
-                Text("\(taskCount) tasks")
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(category.name ?? "Unnamed Category")
+                        .font(.body)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+                    
+                    Text("\(taskCount) tasks")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
-            Spacer()
-            
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundColor(.secondary)
+            .padding(.vertical, 4)
         }
-        .padding(.vertical, 4)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            onTap()
-        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 

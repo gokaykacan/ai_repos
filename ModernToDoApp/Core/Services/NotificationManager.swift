@@ -1,5 +1,6 @@
 import Foundation
 import UserNotifications
+import UIKit
 
 class NotificationManager: ObservableObject {
     static let shared = NotificationManager()
@@ -28,44 +29,48 @@ class NotificationManager: ObservableObject {
         // Don't schedule if the due date is in the past
         guard dueDate > Date() else { return }
         
-        let content = UNMutableNotificationContent()
-        content.title = "Task Due: \(title)"
-        
-        if let notes = task.notes, !notes.isEmpty {
-            content.body = notes
-        } else {
-            content.body = "Your task is due now"
-        }
-        
-        content.sound = .default
-        content.badge = 1
-        
-        // Set category based on priority
-        switch task.priorityEnum {
-        case .high:
-            content.categoryIdentifier = "HIGH_PRIORITY_TASK"
-        case .medium:
-            content.categoryIdentifier = "MEDIUM_PRIORITY_TASK"
-        case .low:
-            content.categoryIdentifier = "LOW_PRIORITY_TASK"
-        }
-        
-        // Create trigger for the exact due date
-        let calendar = Calendar.current
-        let dateComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: dueDate)
-        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
-        
-        let request = UNNotificationRequest(
-            identifier: taskId.uuidString,
-            content: content,
-            trigger: trigger
-        )
-        
-        UNUserNotificationCenter.current().add(request) { error in
-            if let error = error {
-                print("Error scheduling notification: \(error.localizedDescription)")
+        // Get total notification count (delivered + pending) to determine badge number
+        getTotalNotificationCount { totalCount in
+            let content = UNMutableNotificationContent()
+            content.title = "Task Due: \(title)"
+            
+            if let notes = task.notes, !notes.isEmpty {
+                content.body = notes
             } else {
-                print("Notification scheduled for task: \(title)")
+                content.body = "Your task is due now"
+            }
+            
+            content.sound = .default
+            // Set badge count for this new notification  
+            content.badge = NSNumber(value: totalCount + 1)
+            
+            // Set category based on priority
+            switch task.priorityEnum {
+            case .high:
+                content.categoryIdentifier = "HIGH_PRIORITY_TASK"
+            case .medium:
+                content.categoryIdentifier = "MEDIUM_PRIORITY_TASK"
+            case .low:
+                content.categoryIdentifier = "LOW_PRIORITY_TASK"
+            }
+            
+            // Create trigger for the exact due date
+            let calendar = Calendar.current
+            let dateComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: dueDate)
+            let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
+            
+            let request = UNNotificationRequest(
+                identifier: taskId.uuidString,
+                content: content,
+                trigger: trigger
+            )
+            
+            UNUserNotificationCenter.current().add(request) { error in
+                if let error = error {
+                    print("Error scheduling notification: \(error.localizedDescription)")
+                } else {
+                    print("Notification scheduled for task: \(title)")
+                }
             }
         }
     }
@@ -103,6 +108,39 @@ class NotificationManager: ObservableObject {
                     print("Unknown notification authorization status")
                 }
             }
+        }
+    }
+    
+    func clearAppBadge() {
+        DispatchQueue.main.async {
+            UIApplication.shared.applicationIconBadgeNumber = 0
+        }
+        // Clear delivered notifications to reset the badge count for future notifications
+        UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+    }
+    
+    private func getTotalNotificationCount(completion: @escaping (Int) -> Void) {
+        let group = DispatchGroup()
+        var deliveredCount = 0
+        var pendingCount = 0
+        
+        // Get delivered notifications count
+        group.enter()
+        UNUserNotificationCenter.current().getDeliveredNotifications { notifications in
+            deliveredCount = notifications.count
+            group.leave()
+        }
+        
+        // Get pending notifications count
+        group.enter()
+        UNUserNotificationCenter.current().getPendingNotificationRequests { requests in
+            pendingCount = requests.count
+            group.leave()
+        }
+        
+        // When both complete, return total
+        group.notify(queue: .main) {
+            completion(deliveredCount + pendingCount)
         }
     }
 }

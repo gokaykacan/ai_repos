@@ -10,6 +10,12 @@ The ModernToDoApp now builds successfully and runs as a high-performance iOS To-
 
 **ModernToDoApp** is a working iOS To-Do application built with SwiftUI and Core Data. The app provides comprehensive task management functionality with CloudKit synchronization, notifications, and multiple platform extensions.
 
+### Quick Start
+1. Open `ModernToDoApp.xcodeproj` in Xcode
+2. Select "ModernToDoApp" scheme and iOS Simulator
+3. Build and run (`Cmd+R`) or use command: `xcodebuild -project ModernToDoApp.xcodeproj -scheme ModernToDoApp -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 16' build`
+4. For testing changes, always run tests before committing: `xcodebuild -project ModernToDoApp.xcodeproj -scheme ModernToDoApp test`
+
 ## Technology Stack
 
 - **Platform**: iOS 15+, watchOS companion app
@@ -40,7 +46,7 @@ ModernToDoApp/
 ├── Share Extension/               # Share extension for external task creation
 ├── ModernToDoAppTests/           # Unit tests with repository pattern tests
 ├── ModernToDoAppUITests/         # UI automation tests
-└── Unused/                       # Previously implemented MVVM architecture (archived)
+└── Unused/                       # Archived MVVM implementation with repositories, view models, and dependency injection
 ```
 
 ## Current Architecture
@@ -99,11 +105,20 @@ The app uses a **simplified direct Core Data integration** pattern rather than f
 # Build the main app
 xcodebuild -project ModernToDoApp.xcodeproj -scheme ModernToDoApp build
 
-# Run tests
-xcodebuild -project ModernToDoApp.xcodeproj -scheme ModernToDoApp test
-
 # Build for simulator
 xcodebuild -project ModernToDoApp.xcodeproj -scheme ModernToDoApp -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 16' build
+
+# Run all tests
+xcodebuild -project ModernToDoApp.xcodeproj -scheme ModernToDoApp test
+
+# Run specific test class
+xcodebuild -project ModernToDoApp.xcodeproj -scheme ModernToDoApp test -only-testing:ModernToDoAppTests/ModernToDoAppTests
+
+# Run unit tests only (no UI tests)
+xcodebuild -project ModernToDoApp.xcodeproj -scheme ModernToDoApp test -only-testing:ModernToDoAppTests
+
+# Run UI tests only
+xcodebuild -project ModernToDoApp.xcodeproj -scheme ModernToDoApp test -only-testing:ModernToDoAppUITests
 ```
 
 ## Key Files and Architecture
@@ -231,41 +246,35 @@ The test suite includes comprehensive unit tests in `ModernToDoAppTests/`:
 
 ## Recent Fixes (Latest Update)
 
-### Category Add Button Issues Fixed
-- **Root Cause**: FloatingActionButton category action was trying to access variables outside its scope
-- **Solution**: Restructured component hierarchy to pass category creation callbacks properly
-- **Changes Made**:
-  - Updated `TaskListView` to accept both `showAddTask` and `showAddCategory` closure parameters
-  - Modified `ContentView` to manage both task and category sheet states centrally
-  - Fixed FloatingActionButton to call the correct closure for category creation
-  - Ensured both "+ button in FloatingActionButton" and "+ button in Categories tab" work correctly
+### Notification Badge System Overhaul
+- **Critical Issue**: Notification badges showing incorrect counts when multiple notifications delivered simultaneously
+- **Root Cause**: Previous badge logic was setting each notification badge to 1, causing overwrite instead of increment
+- **Complete Solution**:
+  - **Smart Badge Counting**: Implemented `getTotalNotificationCount()` that combines delivered + pending notifications
+  - **Proper Badge Increment**: Each new notification gets badge value of (total_existing_notifications + 1)
+  - **Automatic Badge Clearing**: `clearAppBadge()` resets icon badge when app enters foreground
+  - **UIKit Integration**: Added `import UIKit` for proper badge number management
+- **Technical Implementation**:
+  - `scheduleNotification()` now uses asynchronous counting with DispatchGroup
+  - Badge calculation: `content.badge = NSNumber(value: totalCount + 1)`
+  - App lifecycle integration via `willEnterForegroundNotification`
+- **User Experience**: 
+  - Multiple simultaneous notifications show correct cumulative count (2, 3, 4...)
+  - App badge clears immediately when opening app
+  - Notification count accurately reflects all unread notifications
 
-### Date Picker UI Improvements
-- **Issue**: "Select Date" text was cluttering the interface and date picker wasn't centered
-- **Solution**: 
-  - Removed the date picker label by using empty string `""`
-  - Added `.labelsHidden()` modifier for cleaner appearance
-  - Used `Spacer()` elements to center the date picker vertically in the sheet
-  - Maintained functionality while improving visual presentation
+### Performance Optimization & Bug Fixes
+- **App Freezing Issues**: Fixed TabView onTapGesture conflicts causing navigation locks
+- **Memory Performance**: Implemented caching system for filtered and grouped tasks
+- **Keyboard Dismissal**: Added proper keyboard dismissal on list tap gestures
+- **Category Management**: Simplified binding architecture to prevent sheet opening/closing issues
+- **Animation Performance**: Removed FetchRequest animations that caused UI stutters
 
-### Category Swipe Actions Added
-- **New Feature**: Enhanced category management with swipe gestures
-- **Implementation**: Added SwiftUI `swipeActions` modifiers to category list items
-- **Functionality**:
-  - **Swipe Right (Leading Edge)**: Shows "Delete" action with destructive styling
-  - **Swipe Left (Trailing Edge)**: Shows "Edit" action with blue styling
-  - **Tap Action**: Also opens edit dialog (existing functionality preserved)
-- **User Experience**: Consistent with iOS standard swipe gesture patterns
-
-### Postpone Date Picker Consistency
-- **Issue**: Postpone task date picker had different UI style than due date picker
-- **Solution**: Unified both date pickers to use the same consistent interface
-- **Changes**:
-  - Changed postpone date picker from `.graphical` to `.wheel` style
-  - Removed date picker label (empty string) and added `.labelsHidden()`
-  - Added `Spacer()` elements to center picker vertically
-  - Moved "Save" button to navigation bar trailing position for consistency
-- **Result**: Both due date setting and postpone operations now have identical, user-friendly interfaces
+### Category System Improvements
+- **Swipe Actions**: Added leading (delete) and trailing (edit) swipe gestures for categories
+- **Category Creation**: Fixed FloatingActionButton category creation workflow
+- **Date Picker Consistency**: Unified postpone and due date picker interfaces with wheel style
+- **UI Consistency**: Standardized button styles and navigation patterns
 
 ### Technical Details
 - Category creation now works from both:

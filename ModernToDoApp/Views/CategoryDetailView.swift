@@ -153,14 +153,14 @@ struct CategoryDetailView: View {
         withAnimation {
             if let existingCategory = category {
                 // Update existing category
-                existingCategory.name = name
+                existingCategory.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
                 existingCategory.colorHex = selectedColor.hexString
                 existingCategory.icon = selectedIcon
             } else {
                 // Create new category
                 let newCategory = TaskCategory(context: viewContext)
                 newCategory.id = UUID()
-                newCategory.name = name
+                newCategory.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
                 newCategory.colorHex = selectedColor.hexString
                 newCategory.icon = selectedIcon
                 newCategory.createdAt = Date()
