@@ -830,6 +830,7 @@ struct CategoriesView: View {
     @State private var categoryToDeleteTasksFrom: TaskCategory?
     @State private var showingDeleteCategoryAlert = false
     @State private var categoryToDelete: TaskCategory?
+    @State private var selectedCategoryForTask: TaskCategory?
     
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \TaskCategory.sortOrder, ascending: true)])
@@ -944,6 +945,12 @@ struct CategoriesView: View {
                             selectedCategoryForDetail = category
                         }, onEdit: {
                             editingCategory = category
+                        }, onAddTask: {
+                            // Add haptic feedback for long press
+                            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                            impactFeedback.impactOccurred()
+                            
+                            selectedCategoryForTask = category
                         })
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
@@ -990,6 +997,9 @@ struct CategoriesView: View {
             }
             .sheet(item: $selectedCategoryForDetail) { category in
                 SimpleCategoryDetailView(category: category)
+            }
+            .sheet(item: $selectedCategoryForTask) { category in
+                TaskDetailView(category: category)
             }
             .alert("Delete All Tasks", isPresented: $showingDeleteTasksAlert) {
                 Button("Cancel", role: .cancel) { }
@@ -1112,6 +1122,7 @@ struct CategoryCardView: View {
     let category: TaskCategory
     let onTap: () -> Void
     let onEdit: () -> Void
+    let onAddTask: () -> Void
     @Environment(\.colorScheme) private var colorScheme
     
     var taskCount: Int {
@@ -1231,6 +1242,19 @@ struct CategoryCardView: View {
             )
         }
         .buttonStyle(PlainButtonStyle())
+        .contextMenu {
+            Button {
+                onAddTask()
+            } label: {
+                Label("Add Task", systemImage: "plus")
+            }
+            
+            Button {
+                onEdit()
+            } label: {
+                Label("Edit Category", systemImage: "pencil")
+            }
+        }
     }
 }
 
