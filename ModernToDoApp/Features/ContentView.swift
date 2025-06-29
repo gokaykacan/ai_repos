@@ -140,7 +140,13 @@ struct TaskListView: View {
             sections.append(TaskSection(title: "Upcoming", tasks: upcomingTasks.sorted { $0.dueDate ?? Date() < $1.dueDate ?? Date() }))
         }
         if !noDueDateTasks.isEmpty {
-            sections.append(TaskSection(title: "No Due Date", tasks: noDueDateTasks.sorted { $0.createdAt ?? Date() < $1.createdAt ?? Date() }))
+            sections.append(TaskSection(title: "No Due Date", tasks: noDueDateTasks.sorted {
+                if $0.priority != $1.priority {
+                    return $0.priority > $1.priority
+                } else {
+                    return $0.createdAt ?? Date() < $1.createdAt ?? Date()
+                }
+            }))
         }
         if !completedTasks.isEmpty && showCompletedTasks {
             sections.append(TaskSection(title: "Completed", tasks: completedTasks.sorted { $0.updatedAt ?? Date() > $1.updatedAt ?? Date() }))
