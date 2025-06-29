@@ -631,6 +631,10 @@ struct CategoriesView: View {
     @State private var showingAddCategory = false
     @State private var searchText = ""
     @State private var sortOption: CategorySortOption = .alphabetical
+    @State private var showingDeleteTasksAlert = false
+    @State private var categoryToDeleteTasksFrom: TaskCategory?
+    @State private var showingDeleteCategoryAlert = false
+    @State private var categoryToDelete: TaskCategory?
     
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \TaskCategory.sortOrder, ascending: true)])
@@ -720,10 +724,17 @@ struct CategoriesView: View {
                                 editingCategory = category
                             }
                             .tint(.blue)
+                            
+                            Button("Delete All Tasks") {
+                                categoryToDeleteTasksFrom = category
+                                showingDeleteTasksAlert = true
+                            }
+                            .tint(.orange)
                         }
                         .swipeActions(edge: .leading) {
-                            Button("Delete", role: .destructive) {
-                                deleteCategory(category)
+                            Button("Delete Category", role: .destructive) {
+                                categoryToDelete = category
+                                showingDeleteCategoryAlert = true
                             }
                         }
                     }
@@ -749,6 +760,28 @@ struct CategoriesView: View {
             .sheet(item: $selectedCategoryForDetail) { category in
                 SimpleCategoryDetailView(category: category)
             }
+            .alert("Delete All Tasks", isPresented: $showingDeleteTasksAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Delete All Tasks", role: .destructive) {
+                    if let category = categoryToDeleteTasksFrom {
+                        deleteAllTasksFromCategory(category)
+                    }
+                }
+            } message: {
+                Text("Are you sure you want to delete all tasks from \"\(categoryToDeleteTasksFrom?.name ?? "this category")\"? This action cannot be undone.")
+            }
+            .alert("Delete Category", isPresented: $showingDeleteCategoryAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Delete Category", role: .destructive) {
+                    if let category = categoryToDelete {
+                        deleteCategory(category)
+                    }
+                }
+            } message: {
+                let taskCount = categoryToDelete?.tasks?.count ?? 0
+                let taskText = taskCount == 1 ? "task" : "tasks"
+                return Text("Are you sure you want to delete \"\(categoryToDelete?.name ?? "this category")\" and all its \(taskCount) \(taskText)? This action cannot be undone.")
+            }
         }
     }
     
@@ -765,14 +798,81 @@ struct CategoriesView: View {
     }
     
     private func deleteCategory(_ category: TaskCategory) {
-        withAnimation {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            // Add haptic feedback
+            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+            impactFeedback.impactOccurred()
+            
+            // Cancel notifications for all tasks in this category before deleting
+            if let tasks = category.tasks as? Set<Task> {
+                for task in tasks {
+                    NotificationManager.shared.cancelNotification(for: task)
+                }
+            }
+            
             viewContext.delete(category)
             
             do {
                 try viewContext.save()
+                print("Successfully deleted category: \(category.name ?? "Unknown")")
+                
+                // Success haptic feedback
+                let successFeedback = UINotificationFeedbackGenerator()
+                successFeedback.notificationOccurred(.success)
+                
             } catch {
                 print("Error deleting category: \(error)")
+                
+                // Error haptic feedback
+                let errorFeedback = UINotificationFeedbackGenerator()
+                errorFeedback.notificationOccurred(.error)
             }
+            
+            // Reset state
+            categoryToDelete = nil
+        }
+    }
+    
+    private func deleteAllTasksFromCategory(_ category: TaskCategory) {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            // Add haptic feedback
+            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+            impactFeedback.impactOccurred()
+            
+            // Get all tasks from this category
+            guard let tasks = category.tasks as? Set<Task> else { 
+                print("No tasks found in category")
+                return 
+            }
+            
+            // Cancel notifications for all tasks being deleted
+            for task in tasks {
+                NotificationManager.shared.cancelNotification(for: task)
+            }
+            
+            // Delete all tasks
+            for task in tasks {
+                viewContext.delete(task)
+            }
+            
+            do {
+                try viewContext.save()
+                print("Successfully deleted \(tasks.count) tasks from category: \(category.name ?? "Unknown")")
+                
+                // Additional haptic feedback for success
+                let successFeedback = UINotificationFeedbackGenerator()
+                successFeedback.notificationOccurred(.success)
+                
+            } catch {
+                print("Error deleting tasks from category: \(error)")
+                
+                // Error haptic feedback
+                let errorFeedback = UINotificationFeedbackGenerator()
+                errorFeedback.notificationOccurred(.error)
+            }
+            
+            // Reset state
+            categoryToDeleteTasksFrom = nil
         }
     }
 }
