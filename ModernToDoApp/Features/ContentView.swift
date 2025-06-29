@@ -155,136 +155,134 @@ struct TaskListView: View {
     
     var body: some View {
         NavigationView {
-            ZStack(alignment: .bottomTrailing) {
-                VStack(spacing: 0) {
-                    // Category filter section
-                    if !categories.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text("Category")
-                                    .font(.headline)
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                            }
-                            
-                            Picker("Category", selection: $selectedCategory) {
-                                Text("All Categories").tag(nil as TaskCategory?)
-                                
-                                ForEach(categories, id: \.self) { category in
-                                    HStack {
-                                        Circle()
-                                            .fill(Color(hex: category.colorHex ?? "#007AFF"))
-                                            .frame(width: 12, height: 12)
-                                        Text(category.name ?? "Unnamed")
-                                    }
-                                    .tag(category as TaskCategory?)
-                                }
-                            }
-                            .pickerStyle(MenuPickerStyle())
+            VStack(spacing: 0) {
+                // Category filter section
+                if !categories.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("Category")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                            Spacer()
                         }
-                        .padding(.horizontal)
-                        .padding(.top, 8)
                         
-                        Divider()
+                        Picker("Category", selection: $selectedCategory) {
+                            Text("All Categories").tag(nil as TaskCategory?)
+                            
+                            ForEach(categories, id: \.self) { category in
+                                HStack {
+                                    Circle()
+                                        .fill(Color(hex: category.colorHex ?? "#007AFF"))
+                                        .frame(width: 12, height: 12)
+                                    Text(category.name ?? "Unnamed")
+                                }
+                                .tag(category as TaskCategory?)
+                            }
+                        }
+                        .pickerStyle(MenuPickerStyle())
                     }
+                    .padding(.horizontal)
+                    .padding(.top, 8)
                     
-                    List {
-                        if groupedTasks.isEmpty && searchText.isEmpty {
-                            Text("No tasks found. Tap '+' to add a new task!")
-                                .foregroundColor(.secondary)
-                                .padding()
-                        } else if groupedTasks.isEmpty && !searchText.isEmpty {
-                            Text("No tasks found matching your search.")
-                                .foregroundColor(.secondary)
-                                .padding()
-                        } else {
-                            ForEach(groupedTasks) { section in
-                                Section(header: Text(section.title)) {
-                                    ForEach(section.tasks, id: \.self) { task in
-                                        TaskRowView(task: task, onTap: {
-                                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                            impactFeedback.impactOccurred()
-                                            activeSheet = .detail(task)
-                                        }, onEdit: {
+                    Divider()
+                }
+                
+                List {
+                    if groupedTasks.isEmpty && searchText.isEmpty {
+                        Text("No tasks found. Tap '+' to add a new task!")
+                            .foregroundColor(.secondary)
+                            .padding()
+                    } else if groupedTasks.isEmpty && !searchText.isEmpty {
+                        Text("No tasks found matching your search.")
+                            .foregroundColor(.secondary)
+                            .padding()
+                    } else {
+                        ForEach(groupedTasks) { section in
+                            Section(header: Text(section.title)) {
+                                ForEach(section.tasks, id: \.self) { task in
+                                    TaskRowView(task: task, onTap: {
+                                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                        impactFeedback.impactOccurred()
+                                        activeSheet = .detail(task)
+                                    }, onEdit: {
+                                        activeSheet = .edit(task)
+                                    }, onTaskUpdated: {
+                                        // Trigger UI refresh by updating a state variable
+                                        // This ensures SwiftUI re-evaluates the computed properties
+                                    })
+                                    .swipeActions(edge: .trailing) {
+                                        Button("Delete", role: .destructive) {
+                                            withAnimation {
+                                                // Cancel notification before deleting
+                                                if notificationsEnabled {
+                                                    NotificationManager.shared.cancelNotification(for: task)
+                                                }
+                                                
+                                                viewContext.delete(task)
+                                                
+                                                do {
+                                                    try viewContext.save()
+                                                } catch {
+                                                    print("Error deleting task: \(error)")
+                                                }
+                                            }
+                                        }
+                                        
+                                        Button("Edit") {
                                             activeSheet = .edit(task)
-                                        }, onTaskUpdated: {
-                                            // Trigger UI refresh by updating a state variable
-                                            // This ensures SwiftUI re-evaluates the computed properties
-                                        })
-                                        .swipeActions(edge: .trailing) {
-                                            Button("Delete", role: .destructive) {
-                                                withAnimation {
-                                                    // Cancel notification before deleting
+                                        }
+                                        .tint(.blue)
+                                        
+                                        Button("Postpone") {
+                                            let postponeDate = task.dueDate ?? Date()
+                                            activeSheet = .postpone(task, postponeDate)
+                                        }
+                                        .tint(.orange)
+                                    }
+                                    .swipeActions(edge: .leading) {
+                                        Button(task.isCompleted ? "Incomplete" : "Complete") {
+                                            withAnimation {
+                                                let newValue = !task.isCompleted
+                                                task.isCompleted = newValue
+                                                task.updatedAt = Date()
+                                                
+                                                do {
+                                                    try viewContext.save()
+                                                    
                                                     if notificationsEnabled {
-                                                        NotificationManager.shared.cancelNotification(for: task)
-                                                    }
-                                                    
-                                                    viewContext.delete(task)
-                                                    
-                                                    do {
-                                                        try viewContext.save()
-                                                    } catch {
-                                                        print("Error deleting task: \(error)")
-                                                    }
-                                                }
-                                            }
-                                            
-                                            Button("Edit") {
-                                                activeSheet = .edit(task)
-                                            }
-                                            .tint(.blue)
-                                            
-                                            Button("Postpone") {
-                                                let postponeDate = task.dueDate ?? Date()
-                                                activeSheet = .postpone(task, postponeDate)
-                                            }
-                                            .tint(.orange)
-                                        }
-                                        .swipeActions(edge: .leading) {
-                                            Button(task.isCompleted ? "Incomplete" : "Complete") {
-                                                withAnimation {
-                                                    let newValue = !task.isCompleted
-                                                    task.isCompleted = newValue
-                                                    task.updatedAt = Date()
-                                                    
-                                                    do {
-                                                        try viewContext.save()
-                                                        
-                                                        if notificationsEnabled {
-                                                            if newValue {
-                                                                NotificationManager.shared.cancelNotification(for: task)
-                                                            } else if task.dueDate != nil {
-                                                                NotificationManager.shared.scheduleNotification(for: task)
-                                                            }
+                                                        if newValue {
+                                                            NotificationManager.shared.cancelNotification(for: task)
+                                                        } else if task.dueDate != nil {
+                                                            NotificationManager.shared.scheduleNotification(for: task)
                                                         }
-                                                    } catch {
-                                                        print("Error toggling task completion: \(error)")
-                                                        task.isCompleted = !newValue
-                                                        try? viewContext.save()
                                                     }
+                                                } catch {
+                                                    print("Error toggling task completion: \(error)")
+                                                    task.isCompleted = !newValue
+                                                    try? viewContext.save()
                                                 }
                                             }
-                                            .tint(task.isCompleted ? .orange : .green)
                                         }
+                                        .tint(task.isCompleted ? .orange : .green)
                                     }
-                                    .onDelete { offsets in
-                                        deleteItems(for: section, at: offsets)
-                                    }
+                                }
+                                .onDelete { offsets in
+                                    deleteItems(for: section, at: offsets)
                                 }
                             }
                         }
                     }
                 }
-                .navigationTitle("Tasks")
-                .searchable(text: $searchText, prompt: "Search tasks...")
-                
-                FloatingActionButton(mainAction: {
-                    showAddTask()
-                }, subActions: [
-                    (imageName: "doc.badge.plus", action: { showAddTask() }, label: "Add Task")
-                ])
-                .padding(.trailing, 20)
-                .padding(.bottom, 20)
+            }
+            .navigationTitle("Tasks")
+            .searchable(text: $searchText, prompt: "Search tasks...")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { showAddTask() }) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title2)
+                    }
+                }
             }
             .sheet(item: $activeSheet) { sheetType in
                 switch sheetType {
@@ -508,7 +506,8 @@ struct CategoriesView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showingAddCategory = true }) {
-                        Image(systemName: "plus")
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title2)
                     }
                 }
             }
