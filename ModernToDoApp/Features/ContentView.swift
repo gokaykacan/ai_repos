@@ -599,44 +599,139 @@ struct TaskRowView: View {
     }
 }
 
+enum CategorySortOption: String, CaseIterable, Identifiable {
+    case alphabetical = "alphabetical"
+    case creationDate = "creationDate"
+    
+    var id: String { rawValue }
+    
+    var title: String {
+        switch self {
+        case .alphabetical:
+            return "A → Z"
+        case .creationDate:
+            return "Newest First"
+        }
+    }
+    
+    var systemImage: String {
+        switch self {
+        case .alphabetical:
+            return "textformat.abc"
+        case .creationDate:
+            return "calendar"
+        }
+    }
+}
+
 struct CategoriesView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State private var editingCategory: TaskCategory?
     @State private var selectedCategoryForDetail: TaskCategory?
     @State private var showingAddCategory = false
+    @State private var searchText = ""
+    @State private var sortOption: CategorySortOption = .alphabetical
     
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \TaskCategory.sortOrder, ascending: true)])
     private var categories: FetchedResults<TaskCategory>
     
+    private var filteredAndSortedCategories: [TaskCategory] {
+        let categoryArray = Array(categories)
+        
+        // Filter by search text first
+        let filteredCategories = if searchText.isEmpty {
+            categoryArray
+        } else {
+            categoryArray.filter { category in
+                category.name?.localizedCaseInsensitiveContains(searchText) == true
+            }
+        }
+        
+        // Then sort based on selected option
+        return filteredCategories.sorted { first, second in
+            switch sortOption {
+            case .alphabetical:
+                let firstName = first.name?.lowercased() ?? ""
+                let secondName = second.name?.lowercased() ?? ""
+                return firstName < secondName
+            case .creationDate:
+                let firstDate = first.createdAt ?? Date.distantPast
+                let secondDate = second.createdAt ?? Date.distantPast
+                return firstDate > secondDate // Newest first
+            }
+        }
+    }
+    
     var body: some View {
         NavigationView {
-            List {
-                ForEach(categories, id: \.self) { category in
-                    CategoryRowView(category: category, onTap: {
-                        // Add haptic feedback for tap
-                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                        impactFeedback.impactOccurred()
-                        
-                        selectedCategoryForDetail = category
-                    }, onEdit: {
-                        editingCategory = category
-                    })
-                    .swipeActions(edge: .trailing) {
-                        Button("Edit") {
-                            editingCategory = category
+            VStack(spacing: 0) {
+                // Sort filter section - appears below search bar
+                HStack {
+                    Menu {
+                        ForEach(CategorySortOption.allCases) { option in
+                            Button(action: {
+                                sortOption = option
+                            }) {
+                                Label(option.title, systemImage: option.systemImage)
+                                if sortOption == option {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
                         }
-                        .tint(.blue)
-                    }
-                    .swipeActions(edge: .leading) {
-                        Button("Delete", role: .destructive) {
-                            deleteCategory(category)
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.up.arrow.down")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                            Text("Sort: \(sortOption.title)")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                            Image(systemName: "chevron.down")
+                                .font(.caption2)
+                                .foregroundColor(.blue)
                         }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(8)
                     }
+                    
+                    Spacer()
                 }
-                .onDelete(perform: deleteCategories)
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                .background(Color(UIColor.systemGroupedBackground))
+                
+                // Categories list
+                List {
+                    ForEach(filteredAndSortedCategories, id: \.self) { category in
+                        CategoryRowView(category: category, onTap: {
+                            // Add haptic feedback for tap
+                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                            impactFeedback.impactOccurred()
+                            
+                            selectedCategoryForDetail = category
+                        }, onEdit: {
+                            editingCategory = category
+                        })
+                        .swipeActions(edge: .trailing) {
+                            Button("Edit") {
+                                editingCategory = category
+                            }
+                            .tint(.blue)
+                        }
+                        .swipeActions(edge: .leading) {
+                            Button("Delete", role: .destructive) {
+                                deleteCategory(category)
+                            }
+                        }
+                    }
+                    .onDelete(perform: deleteCategories)
+                }
             }
             .navigationTitle("Categories")
+            .searchable(text: $searchText, prompt: "Search categories...")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showingAddCategory = true }) {
@@ -659,7 +754,7 @@ struct CategoriesView: View {
     
     private func deleteCategories(offsets: IndexSet) {
         withAnimation {
-            offsets.map { categories[$0] }.forEach(viewContext.delete)
+            offsets.map { filteredAndSortedCategories[$0] }.forEach(viewContext.delete)
             
             do {
                 try viewContext.save()
