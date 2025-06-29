@@ -306,23 +306,33 @@ struct TaskListView: View {
                                             .swipeActions(edge: .leading) {
                                                 Button(task.isCompleted ? "Incomplete" : "Complete") {
                                                     withAnimation {
-                                                        let newValue = !task.isCompleted
-                                                        task.isCompleted = newValue
-                                                        task.updatedAt = Date()
+                                                        let wasCompleted = task.isCompleted
+                                                        
+                                                        if !wasCompleted {
+                                                            // Completing the task
+                                                            task.handleTaskCompletion(in: viewContext)
+                                                            
+                                                            // Cancel notification since task is completed
+                                                            if notificationsEnabled {
+                                                                NotificationManager.shared.cancelNotification(for: task)
+                                                            }
+                                                        } else {
+                                                            // Marking task as incomplete
+                                                            task.isCompleted = false
+                                                            task.updatedAt = Date()
+                                                            
+                                                            // Reschedule notification if task has due date
+                                                            if notificationsEnabled && task.dueDate != nil {
+                                                                NotificationManager.shared.scheduleNotification(for: task)
+                                                            }
+                                                        }
                                                         
                                                         do {
                                                             try viewContext.save()
-                                                            
-                                                            if notificationsEnabled {
-                                                                if newValue {
-                                                                    NotificationManager.shared.cancelNotification(for: task)
-                                                                } else if task.dueDate != nil {
-                                                                    NotificationManager.shared.scheduleNotification(for: task)
-                                                                }
-                                                            }
                                                         } catch {
                                                             print("Error toggling task completion: \(error)")
-                                                            task.isCompleted = !newValue
+                                                            // Rollback the change
+                                                            task.isCompleted = wasCompleted
                                                             try? viewContext.save()
                                                         }
                                                     }
@@ -505,6 +515,14 @@ struct TaskRowView: View {
                 HStack(spacing: 8) {
                     // Priority indicator on the left
                     PriorityIndicatorView(priority: task.priorityEnum)
+                    
+                    // Recurring task indicator
+                    if task.hasRecurrence {
+                        Image(systemName: "repeat")
+                            .font(.caption)
+                            .foregroundColor(task.recurrenceTypeEnum.color)
+                            .frame(width: 12, height: 12)
+                    }
                     
                     Text(task.title ?? "Untitled Task")
                         .font(.body)

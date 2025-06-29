@@ -10,6 +10,8 @@ extension Task {
         setPrimitiveValue(Date(), forKey: "createdAt")
         setPrimitiveValue(Date(), forKey: "updatedAt")
         setPrimitiveValue(false, forKey: "isCompleted")
+        setPrimitiveValue(false, forKey: "isRecurring")
+        setPrimitiveValue("none", forKey: "recurrenceType")
         setPrimitiveValue(1, forKey: "priority")
     }
     
@@ -79,5 +81,94 @@ extension Task {
             parentTask.isCompleted = false
             parentTask.updatedAt = Date()
         }
+    }
+    
+    // MARK: - Recurrence Properties
+    var recurrenceTypeEnum: RecurrenceType {
+        get {
+            RecurrenceType(rawValue: recurrenceType ?? "none") ?? .none
+        }
+        set {
+            recurrenceType = newValue.rawValue
+            isRecurring = newValue != .none
+        }
+    }
+    
+    var hasRecurrence: Bool {
+        return isRecurring && recurrenceTypeEnum != .none
+    }
+    
+    var nextRecurrenceDate: Date? {
+        guard hasRecurrence, let dueDate = dueDate else { return nil }
+        return recurrenceTypeEnum.safeNextDueDate(from: dueDate)
+    }
+    
+    // MARK: - Recurrence Methods
+    
+    /// Creates a new recurring task when the current task is completed
+    func createNextRecurringTask(in context: NSManagedObjectContext) -> Task? {
+        guard hasRecurrence, let nextDate = nextRecurrenceDate else { return nil }
+        
+        // Prevent duplicate creation by checking if a task with same original ID and due date already exists
+        let fetchRequest: NSFetchRequest<Task> = Task.fetchRequest()
+        let recurringId = originalRecurringTaskId ?? id ?? UUID()
+        fetchRequest.predicate = NSPredicate(
+            format: "originalRecurringTaskId == %@ AND dueDate == %@",
+            recurringId as CVarArg,
+            nextDate as NSDate
+        )
+        
+        do {
+            let existingTasks = try context.fetch(fetchRequest)
+            if !existingTasks.isEmpty {
+                // Task already exists, don't create duplicate
+                return nil
+            }
+        } catch {
+            print("Error checking for existing recurring task: \(error)")
+            return nil
+        }
+        
+        // Create new recurring task
+        let newTask = Task(context: context)
+        newTask.id = UUID()
+        newTask.title = self.title
+        newTask.notes = self.notes
+        newTask.priority = self.priority
+        newTask.category = self.category
+        newTask.dueDate = nextDate
+        newTask.isCompleted = false
+        newTask.isRecurring = true
+        newTask.recurrenceType = self.recurrenceType
+        newTask.originalRecurringTaskId = self.originalRecurringTaskId ?? self.id
+        newTask.createdAt = Date()
+        newTask.updatedAt = Date()
+        
+        return newTask
+    }
+    
+    /// Handle task completion for recurring tasks
+    func handleTaskCompletion(in context: NSManagedObjectContext) {
+        // Update completion status
+        isCompleted = true
+        updatedAt = Date()
+        
+        // Create next recurring task if applicable
+        if hasRecurrence {
+            _ = createNextRecurringTask(in: context)
+        }
+        
+        // Handle parent task completion if needed
+        updateParentCompletionIfNeeded()
+    }
+    
+    /// Check if this task is part of a recurring series
+    var isPartOfRecurringSeries: Bool {
+        return originalRecurringTaskId != nil || hasRecurrence
+    }
+    
+    /// Get the original recurring task ID (either self.id or originalRecurringTaskId)
+    var recurringSeriesId: UUID? {
+        return originalRecurringTaskId ?? (hasRecurrence ? id : nil)
     }
 }

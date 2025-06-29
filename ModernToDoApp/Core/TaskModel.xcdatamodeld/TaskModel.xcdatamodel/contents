@@ -5,9 +5,12 @@
         <attribute name="dueDate" optional="YES" attributeType="Date"/>
         <attribute name="id" optional="YES" attributeType="UUID"/>
         <attribute name="isCompleted" optional="YES" attributeType="Boolean" defaultValueString="NO"/>
+        <attribute name="isRecurring" optional="YES" attributeType="Boolean" defaultValueString="NO"/>
         <attribute name="notes" optional="YES" attributeType="String"/>
+        <attribute name="originalRecurringTaskId" optional="YES" attributeType="UUID"/>
         <attribute name="postponeDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="priority" optional="YES" attributeType="Integer 16" defaultValueString="1"/>
+        <attribute name="recurrenceType" optional="YES" attributeType="String" defaultValueString="none"/>
         <attribute name="title" optional="YES" attributeType="String"/>
         <attribute name="updatedAt" optional="YES" attributeType="Date"/>
         <relationship name="category" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="TaskCategory" inverseName="tasks" inverseEntity="TaskCategory"/>
