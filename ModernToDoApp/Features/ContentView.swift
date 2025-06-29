@@ -659,6 +659,7 @@ struct TaskCardView: View {
     let onEdit: (() -> Void)?
     let onTaskUpdated: (() -> Void)?
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.managedObjectContext) private var viewContext
     
     private var cardBackground: Color {
         if isSelected {
@@ -672,37 +673,37 @@ struct TaskCardView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
-                // Selection indicator in selection mode
+                // Selection indicator in selection mode OR checkbox in normal mode
                 if isInSelectionMode {
                     Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                         .foregroundColor(isSelected ? .blue : .gray)
                         .font(.title2)
-                        .frame(width: 24, height: 24)
+                        .frame(width: 44, height: 44)
                 } else {
-                    // Completion status indicator in normal mode
-                    Circle()
-                        .fill(task.isCompleted ? Color.green : task.priorityEnum.color.opacity(0.3))
-                        .frame(width: 12, height: 12)
-                        .overlay(
-                            Circle()
-                                .stroke(task.priorityEnum.color, lineWidth: task.isCompleted ? 0 : 2)
-                        )
+                    // Modern checkbox for completion status - isolated tap area
+                    ModernCheckboxView(
+                        isCompleted: task.isCompleted
+                    ) {
+                        toggleTaskCompletion()
+                    }
+                    .zIndex(1) // Ensure checkbox is above other elements for tap priority
                 }
                 
+                // Main content area with separate tap gesture
                 VStack(alignment: .leading, spacing: 8) {
-                    // Title row with priority and recurrence indicators
+                    // Title row with priority and recurrence indicators moved to left
                     HStack(spacing: 8) {
+                        // Priority indicator moved to left (before title)
+                        if !task.isCompleted {
+                            CompactPriorityIndicatorView(priority: task.priorityEnum)
+                        }
+                        
                         Text(task.title ?? "Untitled Task")
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(task.isCompleted ? .secondary : .primary)
                             .strikethrough(task.isCompleted)
                         
                         Spacer()
-                        
-                        // Priority indicator
-                        if !task.isCompleted {
-                            PriorityIndicatorView(priority: task.priorityEnum)
-                        }
                         
                         // Recurring task indicator
                         if task.hasRecurrence {
@@ -767,6 +768,14 @@ struct TaskCardView: View {
                         }
                     }
                 }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    // Tap gesture only on content area, not checkbox
+                    onTap()
+                }
+                .onLongPressGesture(minimumDuration: 0.5) {
+                    onLongPress()
+                }
             }
             .padding(16)
         }
@@ -785,12 +794,42 @@ struct TaskCardView: View {
                     lineWidth: 0.5
                 )
         )
-        .contentShape(Rectangle())
-        .onTapGesture {
-            onTap()
-        }
-        .onLongPressGesture(minimumDuration: 0.5) {
-            onLongPress()
+    }
+    
+    private func toggleTaskCompletion() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            let wasCompleted = task.isCompleted
+            
+            // Add haptic feedback
+            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+            impactFeedback.impactOccurred()
+            
+            if !wasCompleted {
+                // Completing the task
+                task.handleTaskCompletion(in: viewContext)
+                
+                // Cancel notification since task is completed
+                NotificationManager.shared.cancelNotification(for: task)
+            } else {
+                // Marking task as incomplete
+                task.isCompleted = false
+                task.updatedAt = Date()
+                
+                // Reschedule notification if task has due date
+                if task.dueDate != nil {
+                    NotificationManager.shared.scheduleNotification(for: task)
+                }
+            }
+            
+            do {
+                try viewContext.save()
+                onTaskUpdated?()
+            } catch {
+                print("Error toggling task completion: \(error)")
+                // Rollback the change
+                task.isCompleted = wasCompleted
+                try? viewContext.save()
+            }
         }
     }
 }
@@ -2074,6 +2113,127 @@ extension View {
             DragGesture(minimumDistance: 0)
                 .onChanged { _ in onPress() }
                 .onEnded { _ in onRelease() }
+        )
+    }
+}
+
+// MARK: - Modern Checkbox Component
+struct ModernCheckboxView: View {
+    let isCompleted: Bool
+    let onToggle: () -> Void
+    
+    @State private var isPressed = false
+    @State private var bounceScale: CGFloat = 1.0
+    @State private var glowOpacity: Double = 0.0
+    @State private var rotationAngle: Double = 0.0
+    
+    var body: some View {
+        Button(action: {
+            performTapAnimation()
+            onToggle()
+        }) {
+            ZStack {
+                // Glow effect background
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            gradient: Gradient(colors: [
+                                (isCompleted ? Color.blue : Color.gray).opacity(glowOpacity),
+                                Color.clear
+                            ]),
+                            center: .center,
+                            startRadius: 5,
+                            endRadius: 25
+                        )
+                    )
+                    .frame(width: 50, height: 50)
+                    .animation(.easeOut(duration: 0.6), value: glowOpacity)
+                
+                // Main checkbox icon with enhanced animations
+                Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundColor(isCompleted ? .blue : .gray)
+                    .scaleEffect(isPressed ? 0.85 : bounceScale)
+                    .rotationEffect(.degrees(rotationAngle))
+                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isCompleted)
+                    .animation(.easeInOut(duration: 0.1), value: isPressed)
+                    .animation(.spring(response: 0.4, dampingFraction: 0.7), value: bounceScale)
+                    .animation(.easeInOut(duration: 0.3), value: rotationAngle)
+            }
+        }
+        .buttonStyle(PlainButtonStyle())
+        .frame(width: 44, height: 44) // Larger tap area for better accessibility
+        .contentShape(Rectangle()) // Ensure the entire frame is tappable
+        .pressEvents(
+            onPress: {
+                isPressed = true
+            },
+            onRelease: {
+                isPressed = false
+            }
+        )
+    }
+    
+    private func performTapAnimation() {
+        // Enhanced haptic feedback based on completion state
+        let hapticStyle: UIImpactFeedbackGenerator.FeedbackStyle = isCompleted ? .light : .medium
+        let impactFeedback = UIImpactFeedbackGenerator(style: hapticStyle)
+        impactFeedback.impactOccurred()
+        
+        // Bounce animation sequence
+        withAnimation(.easeOut(duration: 0.1)) {
+            bounceScale = 1.2
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                bounceScale = 1.0
+            }
+        }
+        
+        // Glow pulse effect
+        withAnimation(.easeOut(duration: 0.2)) {
+            glowOpacity = 0.4
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            withAnimation(.easeOut(duration: 0.4)) {
+                glowOpacity = 0.0
+            }
+        }
+        
+        // Subtle rotation for completion
+        if !isCompleted {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                rotationAngle = 360
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                rotationAngle = 0 // Reset for next animation
+            }
+        }
+    }
+}
+
+// MARK: - Compact Priority Indicator (moved to left)
+struct CompactPriorityIndicatorView: View {
+    let priority: TaskPriority
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: priority.systemImage)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(priority.color)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .background(
+            Capsule()
+                .fill(priority.color.opacity(0.15))
+        )
+        .overlay(
+            Capsule()
+                .stroke(priority.color.opacity(0.3), lineWidth: 0.5)
         )
     }
 }
