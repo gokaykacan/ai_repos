@@ -274,10 +274,6 @@ struct TaskListView: View {
                             }
                         }
                     }
-                    .onTapGesture {
-                        // Dismiss keyboard when tapping in empty areas of the list
-                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                    }
                 }
                 .navigationTitle("Tasks")
                 .searchable(text: $searchText, prompt: "Search tasks...")

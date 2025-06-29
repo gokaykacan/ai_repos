@@ -237,52 +237,51 @@ struct OptimizedTaskRowView: View {
     @State private var isUpdating = false
     
     var body: some View {
-        HStack(spacing: 12) {
-            OptimizedCheckbox(
-                isChecked: task.isCompleted,
-                onToggle: toggleCompletion
-            )
-            
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(task.title ?? "Untitled Task")
-                        .font(.body)
-                        .fontWeight(.medium)
-                        .foregroundColor(task.isCompleted ? .secondary : .primary)
-                        .strikethrough(task.isCompleted)
-                        .lineLimit(2)
-                    
-                    Spacer()
-                    
-                    OptimizedPriorityIndicator(priority: task.priorityEnum)
-                }
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                OptimizedCheckbox(
+                    isChecked: task.isCompleted,
+                    onToggle: toggleCompletion
+                )
                 
-                HStack {
-                    if let category = task.category {
-                        OptimizedCategoryBadge(category: category)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(task.title ?? "Untitled Task")
+                            .font(.body)
+                            .fontWeight(.medium)
+                            .foregroundColor(task.isCompleted ? .secondary : .primary)
+                            .strikethrough(task.isCompleted)
+                            .lineLimit(2)
+                        
+                        Spacer()
+                        
+                        OptimizedPriorityIndicator(priority: task.priorityEnum)
                     }
                     
-                    Spacer()
-                    
-                    if let dueDate = task.dueDate {
-                        OptimizedDueDateLabel(dueDate: dueDate, isCompleted: task.isCompleted)
+                    HStack {
+                        if let category = task.category {
+                            OptimizedCategoryBadge(category: category)
+                        }
+                        
+                        Spacer()
+                        
+                        if let dueDate = task.dueDate {
+                            OptimizedDueDateLabel(dueDate: dueDate, isCompleted: task.isCompleted)
+                        }
                     }
-                }
-                
-                if let notes = task.notes, !notes.isEmpty {
-                    Text(notes)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .lineLimit(2)
+                    
+                    if let notes = task.notes, !notes.isEmpty {
+                        Text(notes)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                    }
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            onTap()
-        }
+        .buttonStyle(PlainButtonStyle())
         .opacity(isUpdating ? 0.6 : 1.0)
         .animation(.easeInOut(duration: 0.2), value: isUpdating)
     }

@@ -246,6 +246,24 @@ The test suite includes comprehensive unit tests in `ModernToDoAppTests/`:
 
 ## Recent Fixes (Latest Update)
 
+### Task Detail Sheet Opening Fix (Latest)
+- **Critical Issue**: Task row taps were inconsistent - sometimes opening detail view, sometimes not working
+- **Root Cause**: Multiple sheet modifiers on the same view causing SwiftUI gesture conflicts and sheet precedence issues  
+- **Complete Solution**:
+  - **Unified Sheet Management**: Implemented `TaskSheetType` enum to consolidate all sheet states
+  - **Single Sheet Modifier**: Replaced 3 separate `.sheet()` modifiers with one unified sheet using switch statement
+  - **Dedicated PostponeTaskView**: Created separate component for postpone date picker to avoid sheet conflicts
+  - **Gesture Simplification**: Ensured TaskRowView uses same simple Button pattern as CategoryRowView
+- **Technical Implementation**:
+  - `TaskSheetType` enum with cases: `.detail(Task)`, `.edit(Task)`, `.postpone(Task, Date)`
+  - Single `@State private var activeSheet: TaskSheetType?` replaces multiple state variables
+  - TaskRowView onTap sets `activeSheet = .detail(task)` for consistent behavior
+  - PostponeTaskView handles date selection with proper dismissal callbacks
+- **User Experience**: 
+  - Task detail opening now works consistently with single taps like categories
+  - All swipe actions (postpone, edit, delete, complete) preserved and functional
+  - Postpone date picker shows wheel-style date/time selection instead of auto +1 day
+
 ### Notification Badge System Overhaul
 - **Critical Issue**: Notification badges showing incorrect counts when multiple notifications delivered simultaneously
 - **Root Cause**: Previous badge logic was setting each notification badge to 1, causing overwrite instead of increment
