@@ -74,6 +74,12 @@ struct TaskListView: View {
     @State private var showingAddTask = false
     @State private var isInSelectionMode = false
     @State private var selectedTasks: Set<Task> = []
+    @State private var showingDeleteTaskAlert = false
+    @State private var taskToDelete: Task?
+    @State private var showingDeleteMultipleTasksAlert = false
+    @State private var tasksToDelete: [Task] = []
+    @State private var sectionForDeletion: TaskSection?
+    @State private var offsetsForDeletion: IndexSet?
     @AppStorage("showCompletedTasks") private var showCompletedTasks = true
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
     
@@ -276,20 +282,8 @@ struct TaskListView: View {
                                         view
                                             .swipeActions(edge: .trailing) {
                                                 Button("Delete", role: .destructive) {
-                                                    withAnimation {
-                                                        // Cancel notification before deleting
-                                                        if notificationsEnabled {
-                                                            NotificationManager.shared.cancelNotification(for: task)
-                                                        }
-                                                        
-                                                        viewContext.delete(task)
-                                                        
-                                                        do {
-                                                            try viewContext.save()
-                                                        } catch {
-                                                            print("Error deleting task: \(error)")
-                                                        }
-                                                    }
+                                                    taskToDelete = task
+                                                    showingDeleteTaskAlert = true
                                                 }
                                                 
                                                 Button("Edit") {
@@ -342,7 +336,10 @@ struct TaskListView: View {
                                     }
                                 }
                                 .onDelete { offsets in
-                                    deleteItems(for: section, at: offsets)
+                                    sectionForDeletion = section
+                                    offsetsForDeletion = offsets
+                                    tasksToDelete = offsets.map { section.tasks[$0] }
+                                    showingDeleteMultipleTasksAlert = true
                                 }
                             }
                         }
@@ -401,18 +398,102 @@ struct TaskListView: View {
             .sheet(isPresented: $showingAddTask) {
                 TaskDetailView(category: selectedCategory)
             }
+            .alert("Delete Task", isPresented: $showingDeleteTaskAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Delete Task", role: .destructive) {
+                    if let task = taskToDelete {
+                        deleteTask(task)
+                    }
+                }
+            } message: {
+                Text("Are you sure you want to delete \"\(taskToDelete?.title ?? "this task")\"? This action cannot be undone.")
+            }
+            .alert("Delete Tasks", isPresented: $showingDeleteMultipleTasksAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Delete Tasks", role: .destructive) {
+                    if let section = sectionForDeletion, let offsets = offsetsForDeletion {
+                        deleteItems(for: section, at: offsets)
+                    }
+                }
+            } message: {
+                let taskCount = tasksToDelete.count
+                let taskText = taskCount == 1 ? "task" : "tasks"
+                return Text("Are you sure you want to delete \(taskCount) \(taskText)? This action cannot be undone.")
+            }
+        }
+    }
+    
+    private func deleteTask(_ task: Task) {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            // Add haptic feedback
+            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+            impactFeedback.impactOccurred()
+            
+            // Cancel notification before deleting
+            if notificationsEnabled {
+                NotificationManager.shared.cancelNotification(for: task)
+            }
+            
+            viewContext.delete(task)
+            
+            do {
+                try viewContext.save()
+                print("Successfully deleted task: \(task.title ?? "Unknown")")
+                
+                // Success haptic feedback
+                let successFeedback = UINotificationFeedbackGenerator()
+                successFeedback.notificationOccurred(.success)
+                
+            } catch {
+                print("Error deleting task: \(error)")
+                
+                // Error haptic feedback
+                let errorFeedback = UINotificationFeedbackGenerator()
+                errorFeedback.notificationOccurred(.error)
+            }
+            
+            // Reset state
+            taskToDelete = nil
         }
     }
     
     private func deleteItems(for section: TaskSection, at offsets: IndexSet) {
-        withAnimation {
-            offsets.map { section.tasks[$0] }.forEach(viewContext.delete)
+        withAnimation(.easeInOut(duration: 0.3)) {
+            // Add haptic feedback
+            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+            impactFeedback.impactOccurred()
+            
+            let tasksToDelete = offsets.map { section.tasks[$0] }
+            
+            // Cancel notifications for all tasks being deleted
+            if notificationsEnabled {
+                for task in tasksToDelete {
+                    NotificationManager.shared.cancelNotification(for: task)
+                }
+            }
+            
+            tasksToDelete.forEach(viewContext.delete)
 
             do {
                 try viewContext.save()
+                print("Successfully deleted \(tasksToDelete.count) tasks")
+                
+                // Success haptic feedback
+                let successFeedback = UINotificationFeedbackGenerator()
+                successFeedback.notificationOccurred(.success)
+                
             } catch {
-                print("Error deleting task: \(error)")
+                print("Error deleting tasks: \(error)")
+                
+                // Error haptic feedback
+                let errorFeedback = UINotificationFeedbackGenerator()
+                errorFeedback.notificationOccurred(.error)
             }
+            
+            // Reset state
+            sectionForDeletion = nil
+            offsetsForDeletion = nil
+            self.tasksToDelete = []
         }
     }
 }
