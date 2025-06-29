@@ -55,13 +55,28 @@ struct TaskSection: Identifiable {
     let tasks: [Task]
 }
 
+enum TaskSheetType: Identifiable {
+    case detail(Task)
+    case edit(Task)
+    case postpone(Task, Date)
+    
+    var id: String {
+        switch self {
+        case .detail(let task): return "detail-\(task.objectID)"
+        case .edit(let task): return "edit-\(task.objectID)"
+        case .postpone(let task, _): return "postpone-\(task.objectID)"
+        }
+    }
+}
+
 struct TaskListView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Binding var selectedTab: Int
-    @State private var selectedTask: Task?
+    @State private var activeSheet: TaskSheetType?
     @State private var searchText = ""
     @State private var selectedCategory: TaskCategory?
     @AppStorage("showCompletedTasks") private var showCompletedTasks = true
+    @AppStorage("notificationsEnabled") private var notificationsEnabled = true
     let showAddTask: () -> Void
     
     @FetchRequest(
@@ -187,11 +202,70 @@ struct TaskListView: View {
                                 Section(header: Text(section.title)) {
                                     ForEach(section.tasks, id: \.self) { task in
                                         TaskRowView(task: task, onTap: {
-                                            selectedTask = task
+                                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                            impactFeedback.impactOccurred()
+                                            activeSheet = .detail(task)
+                                        }, onEdit: {
+                                            activeSheet = .edit(task)
                                         }, onTaskUpdated: {
                                             // Trigger UI refresh by updating a state variable
                                             // This ensures SwiftUI re-evaluates the computed properties
                                         })
+                                        .swipeActions(edge: .trailing) {
+                                            Button("Delete", role: .destructive) {
+                                                withAnimation {
+                                                    // Cancel notification before deleting
+                                                    if notificationsEnabled {
+                                                        NotificationManager.shared.cancelNotification(for: task)
+                                                    }
+                                                    
+                                                    viewContext.delete(task)
+                                                    
+                                                    do {
+                                                        try viewContext.save()
+                                                    } catch {
+                                                        print("Error deleting task: \(error)")
+                                                    }
+                                                }
+                                            }
+                                            
+                                            Button("Edit") {
+                                                activeSheet = .edit(task)
+                                            }
+                                            .tint(.blue)
+                                            
+                                            Button("Postpone") {
+                                                let postponeDate = task.dueDate ?? Date()
+                                                activeSheet = .postpone(task, postponeDate)
+                                            }
+                                            .tint(.orange)
+                                        }
+                                        .swipeActions(edge: .leading) {
+                                            Button(task.isCompleted ? "Incomplete" : "Complete") {
+                                                withAnimation {
+                                                    let newValue = !task.isCompleted
+                                                    task.isCompleted = newValue
+                                                    task.updatedAt = Date()
+                                                    
+                                                    do {
+                                                        try viewContext.save()
+                                                        
+                                                        if notificationsEnabled {
+                                                            if newValue {
+                                                                NotificationManager.shared.cancelNotification(for: task)
+                                                            } else if task.dueDate != nil {
+                                                                NotificationManager.shared.scheduleNotification(for: task)
+                                                            }
+                                                        }
+                                                    } catch {
+                                                        print("Error toggling task completion: \(error)")
+                                                        task.isCompleted = !newValue
+                                                        try? viewContext.save()
+                                                    }
+                                                }
+                                            }
+                                            .tint(task.isCompleted ? .orange : .green)
+                                        }
                                     }
                                     .onDelete { offsets in
                                         deleteItems(for: section, at: offsets)
@@ -216,8 +290,17 @@ struct TaskListView: View {
                 .padding(.trailing, 20)
                 .padding(.bottom, 20)
             }
-            .sheet(item: $selectedTask) { task in
-                TaskDetailView(task: task)
+            .sheet(item: $activeSheet) { sheetType in
+                switch sheetType {
+                case .detail(let task):
+                    SimpleTaskDetailView(task: task)
+                case .edit(let task):
+                    TaskDetailView(task: task)
+                case .postpone(let task, let initialDate):
+                    PostponeTaskView(task: task, initialDate: initialDate, viewContext: viewContext, notificationsEnabled: notificationsEnabled) {
+                        activeSheet = nil
+                    }
+                }
             }
         }
     }
@@ -235,285 +318,163 @@ struct TaskListView: View {
     }
 }
 
+struct PostponeTaskView: View {
+    let task: Task
+    @State private var newPostponeDate: Date
+    let viewContext: NSManagedObjectContext
+    let notificationsEnabled: Bool
+    let onDismiss: () -> Void
+    
+    init(task: Task, initialDate: Date, viewContext: NSManagedObjectContext, notificationsEnabled: Bool, onDismiss: @escaping () -> Void) {
+        self.task = task
+        self._newPostponeDate = State(initialValue: initialDate)
+        self.viewContext = viewContext
+        self.notificationsEnabled = notificationsEnabled
+        self.onDismiss = onDismiss
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack {
+                Spacer()
+                
+                DatePicker(
+                    "",
+                    selection: $newPostponeDate,
+                    displayedComponents: [.date, .hourAndMinute]
+                )
+                .datePickerStyle(.wheel)
+                .labelsHidden()
+                .padding()
+                
+                Spacer()
+            }
+            .navigationTitle("Postpone Task")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        onDismiss()
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        withAnimation {
+                            task.dueDate = newPostponeDate
+                            task.updatedAt = Date()
+                            task.postponeDate = Date()
+
+                            do {
+                                try viewContext.save()
+
+                                if notificationsEnabled {
+                                    NotificationManager.shared.cancelNotification(for: task)
+                                    if task.dueDate != nil {
+                                        NotificationManager.shared.scheduleNotification(for: task)
+                                    }
+                                }
+                            } catch {
+                                print("Error postponing task: \(error)")
+                            }
+                        }
+                        onDismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
 struct TaskRowView: View {
     let task: Task
     let onTap: () -> Void
+    let onEdit: (() -> Void)?
     let onTaskUpdated: (() -> Void)?
-    @Environment(\.managedObjectContext) private var viewContext
-    @AppStorage("notificationsEnabled") private var notificationsEnabled = true
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Completion status indicator
-            Rectangle()
-                .fill(task.isCompleted ? Color.green : Color.gray.opacity(0.3))
-                .frame(width: 4, height: 40)
-                .cornerRadius(2)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(task.title ?? "Untitled Task")
-                        .font(.body)
-                        .fontWeight(.medium)
-                        .foregroundColor(task.isCompleted ? .secondary : .primary)
-                        .strikethrough(task.isCompleted)
-                    
-                    Spacer()
-                    
-                    // Completion badge
-                    if task.isCompleted {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                            .font(.system(size: 16))
-                    }
-                    
-                    PriorityIndicatorView(priority: task.priorityEnum)
-                }
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                // Completion status indicator
+                Rectangle()
+                    .fill(task.isCompleted ? Color.green : Color.gray.opacity(0.3))
+                    .frame(width: 4, height: 40)
+                    .cornerRadius(2)
                 
-                HStack {
-                    // Category
-                    if let category = task.category {
-                        HStack(spacing: 4) {
-                            Circle()
-                                .fill(Color(hex: category.colorHex ?? "#007AFF"))
-                                .frame(width: 8, height: 8)
-                            Text(category.name ?? "")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                VStack(alignment: .leading, spacing: 4) {
+                    // Title row with priority icon on the left
+                    HStack(spacing: 8) {
+                        // Priority indicator on the left
+                        PriorityIndicatorView(priority: task.priorityEnum)
+                        
+                        Text(task.title ?? "Untitled Task")
+                            .font(.body)
+                            .fontWeight(.medium)
+                            .foregroundColor(task.isCompleted ? .secondary : .primary)
+                            .strikethrough(task.isCompleted)
+                        
+                        Spacer()
                     }
                     
-                    Spacer()
-                    
-                    // Due date
-                    if let dueDate = task.dueDate {
-                        Text(DateFormatter.taskDate.string(from: dueDate))
-                            .font(.caption)
-                            .foregroundColor(dueDate < Date() && !task.isCompleted ? .red : .secondary)
-                    }
-                }
-                
-                // Notes preview
-                if let notes = task.notes, !notes.isEmpty {
-                    Text(notes)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .lineLimit(2)
-                }
-                
-                // Progress indicator for subtasks
-                if task.subtaskArray.count > 0 {
-                    ProgressView(value: task.completionPercentage)
-                        .progressViewStyle(.linear)
-                        .tint(.accentColor)
-                        .padding(.top, 2)
-                    Text("\(Int(task.completionPercentage * 100))% Completed")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-            }
-        }
-        .padding(.vertical, 4)
-        .contextMenu {
-            Button(action: {
-                toggleCompletion()
-            }) {
-                Label(task.isCompleted ? "Mark Incomplete" : "Mark Complete", systemImage: task.isCompleted ? "xmark.circle" : "checkmark.circle")
-            }
-            Button(action: {
-                onTap() // This calls the sheet to edit the task
-            }) {
-                Label("Edit", systemImage: "pencil")
-            }
-            Button(action: {
-                newPostponeDate = task.dueDate ?? Date()
-                showingPostponeDatePicker = true
-            }) {
-                Label("Postpone", systemImage: "calendar.badge.plus")
-            }
-            Button(action: {
-                deleteTask()
-            }) {
-                Label("Delete", systemImage: "trash")
-                    .foregroundColor(.red)
-            }
-        }
-        .swipeActions(edge: .trailing) {
-            Button("Delete", role: .destructive) {
-                deleteTask()
-            }
-            
-            Button("Edit") {
-                onTap()
-            }
-            .tint(.blue)
-            
-            Button("Postpone") {
-                newPostponeDate = task.dueDate ?? Date()
-                showingPostponeDatePicker = true
-            }
-            .tint(.orange)
-        }
-        .swipeActions(edge: .leading) {
-            Button(task.isCompleted ? "Incomplete" : "Complete") {
-                // Performance optimized toggle
-                performanceOptimizedToggle()
-            }
-            .tint(task.isCompleted ? .orange : .green)
-        }
-        .sheet(isPresented: $showingPostponeDatePicker) {
-            NavigationView {
-                VStack {
-                    Spacer()
-                    
-                    DatePicker(
-                        "",
-                        selection: $newPostponeDate,
-                        displayedComponents: [.date, .hourAndMinute]
-                    )
-                    .datePickerStyle(.wheel)
-                    .labelsHidden()
-                    .padding()
-                    
-                    Spacer()
-                }
-                .navigationTitle("Postpone Task")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button("Cancel") {
-                            showingPostponeDatePicker = false
-                        }
-                    }
-                    
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Save") {
-                            withAnimation {
-                                task.dueDate = newPostponeDate
-                                task.updatedAt = Date()
-                                task.postponeDate = Date() // Record when it was postponed
-
-                                do {
-                                    try viewContext.save()
-
-                                    if notificationsEnabled {
-                                        NotificationManager.shared.cancelNotification(for: task)
-                                        if task.dueDate != nil {
-                                            NotificationManager.shared.scheduleNotification(for: task)
-                                        }
-                                    }
-                                } catch {
-                                    print("Error postponing task: \(error)")
-                                }
+                    // Category and due date info
+                    VStack(alignment: .leading, spacing: 4) {
+                        // Category
+                        if let category = task.category {
+                            HStack(spacing: 4) {
+                                Circle()
+                                    .fill(Color(hex: category.colorHex ?? "#007AFF"))
+                                    .frame(width: 8, height: 8)
+                                Text(category.name ?? "")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
                             }
-                            showingPostponeDatePicker = false
+                        }
+                        
+                        // Due date
+                        if let dueDate = task.dueDate {
+                            Text(DateFormatter.taskDate.string(from: dueDate))
+                                .font(.caption)
+                                .foregroundColor(dueDate < Date() && !task.isCompleted ? .red : .secondary)
                         }
                     }
-                }
-            }
-        }
-    }
-    
-    private func toggleCompletion() {
-        // Simple, reliable toggle without complex logic
-        let newValue = !task.isCompleted
-        
-        // Update task state immediately
-        task.isCompleted = newValue
-        task.updatedAt = Date()
-        
-        // Save Core Data changes
-        do {
-            try viewContext.save()
-            
-            // Handle notifications in background
-            if notificationsEnabled {
-                DispatchQueue.global(qos: .background).async {
-                    self.handleNotificationChange(isCompleted: newValue)
-                }
-            }
-            
-        } catch {
-            // Revert on error
-            print("Error toggling task completion: \(error)")
-            task.isCompleted = !newValue
-            try? viewContext.save()
-        }
-    }
-    
-    private func performanceOptimizedToggle() {
-        // Immediate haptic feedback
-        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-        impactFeedback.impactOccurred()
-        
-        // Use withAnimation for smooth UI transitions
-        withAnimation(.easeInOut(duration: 0.3)) {
-            let newValue = !task.isCompleted
-            
-            // Update task state
-            task.isCompleted = newValue
-            task.updatedAt = Date()
-            
-            // Update parent task completion if needed
-            task.updateParentCompletionIfNeeded()
-            
-            // Save changes with error handling
-            do {
-                try viewContext.save()
-                
-                // Handle notifications asynchronously
-                if notificationsEnabled {
-                    DispatchQueue.global(qos: .userInitiated).async {
-                        self.handleNotificationChange(isCompleted: newValue)
+                    
+                    // Notes preview
+                    if let notes = task.notes, !notes.isEmpty {
+                        Text(notes)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                    }
+                    
+                    // Progress indicator for subtasks
+                    if task.subtaskArray.count > 0 {
+                        ProgressView(value: task.completionPercentage)
+                            .progressViewStyle(.linear)
+                            .tint(.accentColor)
+                            .padding(.top, 2)
+                        Text("\(Int(task.completionPercentage * 100))% Completed")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
                     }
                 }
                 
-                // Call update callback if provided
-                onTaskUpdated?()
+                Spacer()
                 
-            } catch {
-                // Revert on error
-                print("Error toggling task completion: \(error)")
-                task.isCompleted = !newValue
-                try? viewContext.save()
+                // Detail view arrow on the right
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
+            .padding(.vertical, 4)
         }
-    }
-    
-    private func handleNotificationChange(isCompleted: Bool) {
-        if isCompleted {
-            // Cancel notification when task is completed
-            NotificationManager.shared.cancelNotification(for: task)
-        } else if task.dueDate != nil {
-            // Reschedule notification when task is marked incomplete again
-            NotificationManager.shared.scheduleNotification(for: task)
-        }
-    }
-    
-    @State private var showingPostponeDatePicker = false
-    @State private var newPostponeDate: Date = Date()
-    
-    private func deleteTask() {
-        withAnimation {
-            // Cancel notification before deleting
-            if notificationsEnabled {
-                NotificationManager.shared.cancelNotification(for: task)
-            }
-            
-            viewContext.delete(task)
-            
-            do {
-                try viewContext.save()
-            } catch {
-                print("Error deleting task: \(error)")
-            }
-        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
 struct CategoriesView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State private var editingCategory: TaskCategory?
+    @State private var selectedCategoryForDetail: TaskCategory?
     @State private var showingAddCategory = false
     
     @FetchRequest(
@@ -524,9 +485,15 @@ struct CategoriesView: View {
         NavigationView {
             List {
                 ForEach(categories, id: \.self) { category in
-                    CategoryRowView(category: category) {
+                    CategoryRowView(category: category, onTap: {
+                        // Add haptic feedback for tap
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                        impactFeedback.impactOccurred()
+                        
+                        selectedCategoryForDetail = category
+                    }, onEdit: {
                         editingCategory = category
-                    }
+                    })
                     .swipeActions(edge: .trailing) {
                         Button("Edit") {
                             editingCategory = category
@@ -554,6 +521,9 @@ struct CategoriesView: View {
             }
             .sheet(item: $editingCategory) { category in
                 CategoryDetailView(category: category)
+            }
+            .sheet(item: $selectedCategoryForDetail) { category in
+                SimpleCategoryDetailView(category: category)
             }
         }
     }
@@ -586,6 +556,7 @@ struct CategoriesView: View {
 struct CategoryRowView: View {
     let category: TaskCategory
     let onTap: () -> Void
+    let onEdit: () -> Void
     
     var taskCount: Int {
         category.tasks?.count ?? 0
@@ -729,6 +700,409 @@ extension DateFormatter {
 }
 
 // Core Data objects with "class" code generation already conform to Identifiable
+
+// MARK: - Simple Detail Views
+struct SimpleTaskDetailView: View {
+    let task: Task
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Task Title
+                    Text(task.title ?? "Untitled Task")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .padding(.horizontal)
+                        .accessibilityLabel("Task title: \(task.title ?? "Untitled Task")")
+                        .accessibilityAddTraits(.isHeader)
+                    
+                    Divider()
+                    
+                    VStack(alignment: .leading, spacing: 16) {
+                        // Priority
+                        DetailRow(title: "Priority", 
+                                value: "\(task.priorityEnum.title) Priority",
+                                icon: task.priorityEnum.systemImage,
+                                color: task.priorityEnum.color)
+                        
+                        // Category
+                        if let category = task.category {
+                            DetailRow(title: "Category",
+                                    value: category.name ?? "Unnamed",
+                                    icon: category.icon ?? "folder",
+                                    color: Color(hex: category.colorHex ?? "#007AFF"))
+                        }
+                        
+                        // Due Date
+                        if let dueDate = task.dueDate {
+                            DetailRow(title: "Due Date",
+                                    value: DateFormatter.taskDate.string(from: dueDate),
+                                    icon: "calendar",
+                                    color: dueDate < Date() && !task.isCompleted ? .red : .blue)
+                        }
+                        
+                        // Status
+                        DetailRow(title: "Status",
+                                value: task.isCompleted ? "Completed" : "Pending",
+                                icon: task.isCompleted ? "checkmark.circle.fill" : "circle",
+                                color: task.isCompleted ? .green : .orange)
+                        
+                        // Creation Date
+                        if let createdAt = task.createdAt {
+                            DetailRow(title: "Created",
+                                    value: DateFormatter.taskDate.string(from: createdAt),
+                                    icon: "plus.circle",
+                                    color: .secondary)
+                        }
+                    }
+                    .padding(.horizontal)
+                    
+                    // Description
+                    if let notes = task.notes, !notes.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Image(systemName: "text.alignleft")
+                                    .foregroundColor(.blue)
+                                Text("Description")
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                            }
+                            .padding(.horizontal)
+                            
+                            Text(notes)
+                                .font(.body)
+                                .padding()
+                                .background(Color(.systemGray6))
+                                .cornerRadius(12)
+                                .padding(.horizontal)
+                        }
+                    }
+                    
+                    // Subtasks
+                    if !task.subtaskArray.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Image(systemName: "list.bullet.indent")
+                                    .foregroundColor(.orange)
+                                Text("Subtasks (\(task.subtaskArray.count))")
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                                Spacer()
+                                Text("\(task.completedSubtasks.count)/\(task.subtaskArray.count) completed")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.horizontal)
+                            
+                            ForEach(task.subtaskArray, id: \.self) { subtask in
+                                HStack {
+                                    Image(systemName: subtask.isCompleted ? "checkmark.circle.fill" : "circle")
+                                        .foregroundColor(subtask.isCompleted ? .green : .secondary)
+                                    Text(subtask.title ?? "Untitled Subtask")
+                                        .strikethrough(subtask.isCompleted)
+                                    Spacer()
+                                    PriorityIndicatorView(priority: subtask.priorityEnum)
+                                }
+                                .padding(.horizontal)
+                                .padding(.vertical, 4)
+                            }
+                        }
+                    }
+                    
+                    Spacer()
+                }
+            }
+            .navigationTitle("Task Details")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Close") {
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                        impactFeedback.impactOccurred()
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+}
+
+struct SimpleCategoryDetailView: View {
+    let category: TaskCategory
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedFilter: TaskFilter = .all
+    
+    private var categoryTasks: [Task] {
+        let tasksSet = category.tasks as? Set<Task> ?? []
+        return Array(tasksSet).sorted { $0.createdAt ?? Date() > $1.createdAt ?? Date() }
+    }
+    
+    private var filteredTasks: [Task] {
+        switch selectedFilter {
+        case .all:
+            return categoryTasks
+        case .completed:
+            return categoryTasks.filter { $0.isCompleted }
+        case .pending:
+            return categoryTasks.filter { !$0.isCompleted }
+        }
+    }
+    
+    enum TaskFilter {
+        case all, completed, pending
+        
+        var title: String {
+            switch self {
+            case .all: return "All Tasks"
+            case .completed: return "Completed Tasks"
+            case .pending: return "Pending Tasks"
+            }
+        }
+    }
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Category Header
+                    HStack {
+                        Circle()
+                            .fill(Color(hex: category.colorHex ?? "#007AFF"))
+                            .frame(width: 60, height: 60)
+                            .overlay(
+                                Image(systemName: category.icon ?? "folder")
+                                    .font(.title2)
+                                    .foregroundColor(.white)
+                            )
+                        
+                        VStack(alignment: .leading) {
+                            Text(category.name ?? "Unnamed Category")
+                                .font(.largeTitle)
+                                .fontWeight(.bold)
+                                .accessibilityLabel("Category name: \(category.name ?? "Unnamed Category")")
+                                .accessibilityAddTraits(.isHeader)
+                            
+                            if let createdAt = category.createdAt {
+                                Text("Created \(DateFormatter.taskDate.string(from: createdAt))")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                    
+                    Divider()
+                    
+                    // Statistics
+                    LazyVGrid(columns: [
+                        GridItem(.flexible()),
+                        GridItem(.flexible()),
+                        GridItem(.flexible())
+                    ], spacing: 16) {
+                        StatCard(
+                            title: "Total", 
+                            value: "\(categoryTasks.count)", 
+                            color: .blue, 
+                            icon: "list.bullet",
+                            isSelected: selectedFilter == .all,
+                            onTap: { selectedFilter = .all }
+                        )
+                        StatCard(
+                            title: "Completed", 
+                            value: "\(categoryTasks.filter { $0.isCompleted }.count)", 
+                            color: .green, 
+                            icon: "checkmark.circle.fill",
+                            isSelected: selectedFilter == .completed,
+                            onTap: { selectedFilter = .completed }
+                        )
+                        StatCard(
+                            title: "Pending", 
+                            value: "\(categoryTasks.filter { !$0.isCompleted }.count)", 
+                            color: .orange, 
+                            icon: "circle",
+                            isSelected: selectedFilter == .pending,
+                            onTap: { selectedFilter = .pending }
+                        )
+                    }
+                    .padding(.horizontal)
+                    
+                    // Filtered Tasks
+                    if !filteredTasks.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Text(selectedFilter.title)
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                                Spacer()
+                                Text("\(filteredTasks.count) task\(filteredTasks.count == 1 ? "" : "s")")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.horizontal)
+                            
+                            ForEach(filteredTasks, id: \.self) { task in
+                                HStack {
+                                    Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                                        .foregroundColor(task.isCompleted ? .green : .secondary)
+                                    
+                                    VStack(alignment: .leading) {
+                                        Text(task.title ?? "Untitled Task")
+                                            .font(.body)
+                                            .strikethrough(task.isCompleted)
+                                        
+                                        if let dueDate = task.dueDate {
+                                            Text(DateFormatter.taskDate.string(from: dueDate))
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    PriorityIndicatorView(priority: task.priorityEnum)
+                                }
+                                .padding()
+                                .background(Color(.systemGray6))
+                                .cornerRadius(10)
+                                .padding(.horizontal)
+                            }
+                        }
+                    } else {
+                        GeometryReader { geometry in
+                            VStack {
+                                Spacer()
+                                
+                                VStack(spacing: 16) {
+                                    Image(systemName: selectedFilter == .completed ? "checkmark.circle" : selectedFilter == .pending ? "circle" : "tray")
+                                        .font(.system(size: 48))
+                                        .foregroundColor(.secondary)
+                                    
+                                    Text(selectedFilter == .all ? "No Tasks Yet" : selectedFilter == .completed ? "No Completed Tasks" : "No Pending Tasks")
+                                        .font(.title2)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.secondary)
+                                    
+                                    Text(selectedFilter == .all ? "Tasks added to this category will appear here" : selectedFilter == .completed ? "Complete some tasks to see them here" : "All tasks in this category are completed!")
+                                        .font(.body)
+                                        .foregroundColor(.secondary)
+                                        .multilineTextAlignment(.center)
+                                        .padding(.horizontal)
+                                }
+                                
+                                Spacer()
+                            }
+                            .frame(width: geometry.size.width, height: max(geometry.size.height, 400))
+                        }
+                        .frame(minHeight: 400)
+                    }
+                }
+            }
+            .navigationTitle("Category Details")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Close") {
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                        impactFeedback.impactOccurred()
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+}
+
+struct DetailRow: View {
+    let title: String
+    let value: String
+    let icon: String
+    let color: Color
+    
+    var body: some View {
+        HStack {
+            Image(systemName: icon)
+                .foregroundColor(color)
+                .frame(width: 24)
+                .accessibilityHidden(true)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .textCase(.uppercase)
+                    .accessibilityHidden(true)
+                
+                Text(value)
+                    .font(.body)
+                    .fontWeight(.medium)
+                    .accessibilityHidden(true)
+            }
+            
+            Spacer()
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(10)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title): \(value)")
+        .accessibilityValue(value)
+    }
+}
+
+struct StatCard: View {
+    let title: String
+    let value: String
+    let color: Color
+    let icon: String
+    let isSelected: Bool
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
+            onTap()
+        }) {
+            VStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundColor(isSelected ? .white : color)
+                    .accessibilityHidden(true)
+                
+                Text(value)
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(isSelected ? .white : .primary)
+                    .accessibilityHidden(true)
+                
+                Text(title)
+                    .font(.caption)
+                    .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
+                    .accessibilityHidden(true)
+            }
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(isSelected ? color : Color(.systemBackground))
+            .cornerRadius(12)
+            .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
+            .scaleEffect(isSelected ? 1.02 : 1.0)
+            .animation(.easeInOut(duration: 0.2), value: isSelected)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title): \(value)")
+        .accessibilityHint("Tap to filter tasks")
+        .accessibilityValue(value)
+        .accessibilityAddTraits(.isSummaryElement)
+    }
+}
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
