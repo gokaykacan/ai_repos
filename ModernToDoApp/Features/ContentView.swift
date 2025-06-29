@@ -208,36 +208,107 @@ struct TaskListView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Category filter section
+                // Search Section
+                VStack(spacing: 0) {
+                    UltraMinimalistSearchBar(
+                        text: $searchText,
+                        placeholder: "Search tasks..."
+                    )
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 16)
+                }
+                
+                // Filter Section (separate from search)
                 if !categories.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("Category")
-                                .font(.headline)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                        }
+                    HStack {
+                        Text("Filter")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
                         
-                        Picker("Category", selection: $selectedCategory) {
-                            Text("All Categories").tag(nil as TaskCategory?)
+                        Spacer()
+                        
+                        Menu {
+                            Button(action: {
+                                selectedCategory = nil
+                            }) {
+                                HStack {
+                                    Image(systemName: "list.bullet")
+                                        .foregroundColor(.blue)
+                                    Text("All Categories")
+                                    Spacer()
+                                    if selectedCategory == nil {
+                                        Image(systemName: "checkmark")
+                                            .foregroundColor(.blue)
+                                    }
+                                }
+                            }
+                            
+                            if !categories.isEmpty {
+                                Divider()
+                            }
                             
                             ForEach(categories, id: \.self) { category in
-                                HStack {
-                                    Circle()
-                                        .fill(Color(hex: category.colorHex ?? "#007AFF"))
-                                        .frame(width: 12, height: 12)
-                                    Text(category.name ?? "Unnamed")
+                                Button(action: {
+                                    selectedCategory = category
+                                }) {
+                                    HStack {
+                                        Circle()
+                                            .fill(Color(hex: category.colorHex ?? "#007AFF"))
+                                            .frame(width: 12, height: 12)
+                                        Image(systemName: category.icon ?? "folder")
+                                            .foregroundColor(Color(hex: category.colorHex ?? "#007AFF"))
+                                        Text(category.name ?? "Unnamed")
+                                        Spacer()
+                                        if selectedCategory == category {
+                                            Image(systemName: "checkmark")
+                                                .foregroundColor(.blue)
+                                        }
+                                    }
                                 }
-                                .tag(category as TaskCategory?)
                             }
+                        } label: {
+                            HStack(spacing: 8) {
+                                if let selectedCategory = selectedCategory {
+                                    Circle()
+                                        .fill(Color(hex: selectedCategory.colorHex ?? "#007AFF"))
+                                        .frame(width: 16, height: 16)
+                                } else {
+                                    Image(systemName: "line.3.horizontal.decrease.circle")
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                Text(selectedCategory?.name ?? "All Categories")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .lineLimit(1)
+                                
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 9)
+                            .background(
+                                .regularMaterial,
+                                in: RoundedRectangle(cornerRadius: 8)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
+                            )
                         }
-                        .pickerStyle(MenuPickerStyle())
+                        .menuStyle(.borderlessButton)
+                        .menuOrder(.fixed)
+                        .menuActionDismissBehavior(.enabled)
                     }
-                    .padding(.horizontal)
-                    .padding(.top, 8)
-                    
-                    Divider()
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 12)
                 }
+                
+                Divider()
                 
                 List {
                     if groupedTasks.isEmpty && searchText.isEmpty {
@@ -250,9 +321,9 @@ struct TaskListView: View {
                             .padding()
                     } else {
                         ForEach(groupedTasks) { section in
-                            Section(header: Text(section.title)) {
+                            Section {
                                 ForEach(section.tasks, id: \.self) { task in
-                                    TaskRowView(
+                                    TaskCardView(
                                         task: task,
                                         isInSelectionMode: isInSelectionMode,
                                         isSelected: selectedTasks.contains(task),
@@ -334,6 +405,9 @@ struct TaskListView: View {
                                                 .tint(task.isCompleted ? .orange : .green)
                                             }
                                     }
+                                    .listRowSeparator(.hidden)
+                                    .listRowBackground(Color.clear)
+                                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
                                 }
                                 .onDelete { offsets in
                                     sectionForDeletion = section
@@ -341,13 +415,22 @@ struct TaskListView: View {
                                     tasksToDelete = offsets.map { section.tasks[$0] }
                                     showingDeleteMultipleTasksAlert = true
                                 }
+                            } header: {
+                                Text(section.title)
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(.primary)
+                                    .textCase(nil)
+                                    .padding(.leading, 16)
+                                    .padding(.top, 8)
                             }
                         }
                     }
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
             }
             .navigationTitle("Tasks")
-            .searchable(text: $searchText, prompt: "Search tasks...")
+            .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 // Left toolbar item - varies based on selection mode
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -418,7 +501,7 @@ struct TaskListView: View {
             } message: {
                 let taskCount = tasksToDelete.count
                 let taskText = taskCount == 1 ? "task" : "tasks"
-                return Text("Are you sure you want to delete \(taskCount) \(taskText)? This action cannot be undone.")
+                Text("Are you sure you want to delete \(taskCount) \(taskText)? This action cannot be undone.")
             }
         }
     }
@@ -566,7 +649,7 @@ struct PostponeTaskView: View {
     }
 }
 
-struct TaskRowView: View {
+struct TaskCardView: View {
     let task: Task
     let isInSelectionMode: Bool
     let isSelected: Bool
@@ -574,102 +657,133 @@ struct TaskRowView: View {
     let onLongPress: () -> Void
     let onEdit: (() -> Void)?
     let onTaskUpdated: (() -> Void)?
+    @Environment(\.colorScheme) private var colorScheme
+    
+    private var cardBackground: Color {
+        if isSelected {
+            return .blue.opacity(0.1)
+        }
+        return colorScheme == .dark 
+            ? Color(UIColor.systemGray6)
+            : Color(UIColor.systemBackground)
+    }
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Selection indicator in selection mode
-            if isInSelectionMode {
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(isSelected ? .blue : .gray)
-                    .font(.title2)
-                    .frame(width: 24, height: 24)
-            } else {
-                // Completion status indicator in normal mode
-                Rectangle()
-                    .fill(task.isCompleted ? Color.green : Color.gray.opacity(0.3))
-                    .frame(width: 4, height: 40)
-                    .cornerRadius(2)
-            }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                // Title row with priority icon on the left
-                HStack(spacing: 8) {
-                    // Priority indicator on the left
-                    PriorityIndicatorView(priority: task.priorityEnum)
-                    
-                    // Recurring task indicator
-                    if task.hasRecurrence {
-                        Image(systemName: "repeat")
-                            .font(.caption)
-                            .foregroundColor(task.recurrenceTypeEnum.color)
-                            .frame(width: 12, height: 12)
-                    }
-                    
-                    Text(task.title ?? "Untitled Task")
-                        .font(.body)
-                        .fontWeight(.medium)
-                        .foregroundColor(task.isCompleted ? .secondary : .primary)
-                        .strikethrough(task.isCompleted)
-                    
-                    Spacer()
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                // Selection indicator in selection mode
+                if isInSelectionMode {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(isSelected ? .blue : .gray)
+                        .font(.title2)
+                        .frame(width: 24, height: 24)
+                } else {
+                    // Completion status indicator in normal mode
+                    Circle()
+                        .fill(task.isCompleted ? Color.green : task.priorityEnum.color.opacity(0.3))
+                        .frame(width: 12, height: 12)
+                        .overlay(
+                            Circle()
+                                .stroke(task.priorityEnum.color, lineWidth: task.isCompleted ? 0 : 2)
+                        )
                 }
                 
-                // Category and due date info
-                VStack(alignment: .leading, spacing: 4) {
-                    // Category
-                    if let category = task.category {
-                        HStack(spacing: 4) {
-                            Circle()
-                                .fill(Color(hex: category.colorHex ?? "#007AFF"))
-                                .frame(width: 8, height: 8)
-                            Text(category.name ?? "")
+                VStack(alignment: .leading, spacing: 8) {
+                    // Title row with priority and recurrence indicators
+                    HStack(spacing: 8) {
+                        Text(task.title ?? "Untitled Task")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(task.isCompleted ? .secondary : .primary)
+                            .strikethrough(task.isCompleted)
+                        
+                        Spacer()
+                        
+                        // Priority indicator
+                        if !task.isCompleted {
+                            PriorityIndicatorView(priority: task.priorityEnum)
+                        }
+                        
+                        // Recurring task indicator
+                        if task.hasRecurrence {
+                            Image(systemName: "repeat")
+                                .font(.caption)
+                                .foregroundColor(task.recurrenceTypeEnum.color)
+                        }
+                        
+                        if !isInSelectionMode {
+                            Image(systemName: "chevron.right")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
                     }
                     
-                    // Due date
-                    if let dueDate = task.dueDate {
-                        Text(DateFormatter.taskDate.string(from: dueDate))
+                    // Metadata row (category, due date)
+                    HStack(spacing: 12) {
+                        // Category
+                        if let category = task.category {
+                            HStack(spacing: 4) {
+                                Circle()
+                                    .fill(Color(hex: category.colorHex ?? "#007AFF"))
+                                    .frame(width: 6, height: 6)
+                                Text(category.name ?? "")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        
+                        // Due date
+                        if let dueDate = task.dueDate {
+                            HStack(spacing: 4) {
+                                Image(systemName: "calendar")
+                                    .font(.caption)
+                                    .foregroundColor(dueDate < Date() && !task.isCompleted ? .red : .secondary)
+                                Text(DateFormatter.taskDate.string(from: dueDate))
+                                    .font(.caption)
+                                    .foregroundColor(dueDate < Date() && !task.isCompleted ? .red : .secondary)
+                            }
+                        }
+                        
+                        Spacer()
+                    }
+                    
+                    // Notes preview
+                    if let notes = task.notes, !notes.isEmpty {
+                        Text(notes)
                             .font(.caption)
-                            .foregroundColor(dueDate < Date() && !task.isCompleted ? .red : .secondary)
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                    }
+                    
+                    // Progress indicator for subtasks
+                    if task.subtaskArray.count > 0 {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ProgressView(value: task.completionPercentage)
+                                .progressViewStyle(.linear)
+                                .tint(.accentColor)
+                            Text("\(Int(task.completionPercentage * 100))% completed • \(task.completedSubtasks.count)/\(task.subtaskArray.count) subtasks")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
-                
-                // Notes preview
-                if let notes = task.notes, !notes.isEmpty {
-                    Text(notes)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .lineLimit(2)
-                }
-                
-                // Progress indicator for subtasks
-                if task.subtaskArray.count > 0 {
-                    ProgressView(value: task.completionPercentage)
-                        .progressViewStyle(.linear)
-                        .tint(.accentColor)
-                        .padding(.top, 2)
-                    Text("\(Int(task.completionPercentage * 100))% Completed")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
             }
-            
-            Spacer()
-            
-            // Detail view arrow on the right (only in normal mode)
-            if !isInSelectionMode {
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
+            .padding(16)
         }
-        .padding(.vertical, 4)
-        .background(
-            isSelected ? Color.blue.opacity(0.1) : Color.clear
+        .background(cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .shadow(
+            color: colorScheme == .dark ? .clear : .black.opacity(0.05),
+            radius: 8,
+            x: 0,
+            y: 2
         )
-        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(
+                    colorScheme == .dark ? Color.gray.opacity(0.2) : Color.clear,
+                    lineWidth: 0.5
+                )
+        )
         .contentShape(Rectangle())
         .onTapGesture {
             onTap()
@@ -751,47 +865,78 @@ struct CategoriesView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Sort filter section - appears below search bar
+                // Search Section
+                VStack(spacing: 0) {
+                    UltraMinimalistSearchBar(
+                        text: $searchText,
+                        placeholder: "Search categories..."
+                    )
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 16)
+                }
+                
+                // Sort Section (separate from search)
                 HStack {
+                    Text("Sort")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.secondary)
+                        .textCase(.uppercase)
+                    
+                    Spacer()
+                    
                     Menu {
                         ForEach(CategorySortOption.allCases) { option in
                             Button(action: {
                                 sortOption = option
                             }) {
-                                Label(option.title, systemImage: option.systemImage)
-                                if sortOption == option {
-                                    Image(systemName: "checkmark")
+                                HStack {
+                                    Image(systemName: option.systemImage)
+                                        .foregroundColor(.blue)
+                                    Text(option.title)
+                                    Spacer()
+                                    if sortOption == option {
+                                        Image(systemName: "checkmark")
+                                            .foregroundColor(.blue)
+                                    }
                                 }
                             }
                         }
                     } label: {
-                        HStack(spacing: 6) {
+                        HStack(spacing: 8) {
                             Image(systemName: "arrow.up.arrow.down")
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                            Text("Sort: \(sortOption.title)")
-                                .font(.caption)
-                                .foregroundColor(.blue)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.secondary)
+                            Text(sortOption.title)
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundColor(.primary)
+                                .lineLimit(1)
                             Image(systemName: "chevron.down")
-                                .font(.caption2)
-                                .foregroundColor(.blue)
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(.secondary)
                         }
                         .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.blue.opacity(0.1))
-                        .cornerRadius(8)
+                        .padding(.vertical, 9)
+                        .background(
+                            .regularMaterial,
+                            in: RoundedRectangle(cornerRadius: 8)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
+                        )
                     }
-                    
-                    Spacer()
+                    .menuStyle(.borderlessButton)
+                    .menuOrder(.fixed)
+                    .menuActionDismissBehavior(.enabled)
                 }
-                .padding(.horizontal)
-                .padding(.vertical, 8)
-                .background(Color(UIColor.systemGroupedBackground))
+                .padding(.horizontal, 20)
+                .padding(.bottom, 12)
                 
                 // Categories list
                 List {
                     ForEach(filteredAndSortedCategories, id: \.self) { category in
-                        CategoryRowView(category: category, onTap: {
+                        CategoryCardView(category: category, onTap: {
                             // Add haptic feedback for tap
                             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                             impactFeedback.impactOccurred()
@@ -800,6 +945,9 @@ struct CategoriesView: View {
                         }, onEdit: {
                             editingCategory = category
                         })
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
                         .swipeActions(edge: .trailing) {
                             Button("Edit") {
                                 editingCategory = category
@@ -821,9 +969,11 @@ struct CategoriesView: View {
                     }
                     .onDelete(perform: deleteCategories)
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
             }
             .navigationTitle("Categories")
-            .searchable(text: $searchText, prompt: "Search categories...")
+            .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showingAddCategory = true }) {
@@ -861,7 +1011,7 @@ struct CategoriesView: View {
             } message: {
                 let taskCount = categoryToDelete?.tasks?.count ?? 0
                 let taskText = taskCount == 1 ? "task" : "tasks"
-                return Text("Are you sure you want to delete \"\(categoryToDelete?.name ?? "this category")\" and all its \(taskCount) \(taskText)? This action cannot be undone.")
+                Text("Are you sure you want to delete \"\(categoryToDelete?.name ?? "this category")\" and all its \(taskCount) \(taskText)? This action cannot be undone.")
             }
         }
     }
@@ -958,45 +1108,127 @@ struct CategoriesView: View {
     }
 }
 
-struct CategoryRowView: View {
+struct CategoryCardView: View {
     let category: TaskCategory
     let onTap: () -> Void
     let onEdit: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
     
     var taskCount: Int {
         category.tasks?.count ?? 0
     }
     
+    var completedTaskCount: Int {
+        let tasks = category.tasks as? Set<Task> ?? []
+        return tasks.filter { $0.isCompleted }.count
+    }
+    
+    var pendingTaskCount: Int {
+        taskCount - completedTaskCount
+    }
+    
+    private var cardBackground: Color {
+        colorScheme == .dark 
+            ? Color(UIColor.systemGray6)
+            : Color(UIColor.systemBackground)
+    }
+    
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 12) {
-                Circle()
-                    .fill(Color(hex: category.colorHex ?? "#007AFF"))
-                    .frame(width: 32, height: 32)
-                    .overlay(
-                        Image(systemName: category.icon ?? "folder")
-                            .font(.caption)
-                            .foregroundColor(.white)
-                    )
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(category.name ?? "Unnamed Category")
-                        .font(.body)
-                        .fontWeight(.medium)
-                        .foregroundColor(.primary)
+            VStack(spacing: 0) {
+                HStack(spacing: 16) {
+                    // Category Icon with colored background
+                    ZStack {
+                        Circle()
+                            .fill(Color(hex: category.colorHex ?? "#007AFF").opacity(0.15))
+                            .frame(width: 50, height: 50)
+                        
+                        Circle()
+                            .fill(Color(hex: category.colorHex ?? "#007AFF"))
+                            .frame(width: 36, height: 36)
+                            .overlay(
+                                Image(systemName: category.icon ?? "folder")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.white)
+                            )
+                    }
                     
-                    Text("\(taskCount) tasks")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text(category.name ?? "Unnamed Category")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundColor(.primary)
+                                .lineLimit(1)
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        // Task count with breakdown
+                        HStack(spacing: 16) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "list.bullet")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                Text("\(taskCount) total")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            if pendingTaskCount > 0 {
+                                HStack(spacing: 4) {
+                                    Circle()
+                                        .fill(Color.orange)
+                                        .frame(width: 6, height: 6)
+                                    Text("\(pendingTaskCount) pending")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            
+                            if completedTaskCount > 0 {
+                                HStack(spacing: 4) {
+                                    Circle()
+                                        .fill(Color.green)
+                                        .frame(width: 6, height: 6)
+                                    Text("\(completedTaskCount) done")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            
+                            Spacer()
+                        }
+                        
+                        // Progress bar if there are tasks
+                        if taskCount > 0 {
+                            ProgressView(value: Double(completedTaskCount) / Double(taskCount))
+                                .progressViewStyle(.linear)
+                                .tint(Color(hex: category.colorHex ?? "#007AFF"))
+                                .scaleEffect(y: 0.8)
+                        }
+                    }
                 }
-                
-                Spacer()
-                
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                .padding(16)
             }
-            .padding(.vertical, 4)
+            .background(cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .shadow(
+                color: colorScheme == .dark ? .clear : .black.opacity(0.05),
+                radius: 8,
+                x: 0,
+                y: 2
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(
+                        colorScheme == .dark ? Color.gray.opacity(0.2) : Color.clear,
+                        lineWidth: 0.5
+                    )
+            )
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -1563,3 +1795,259 @@ struct ContentView_Previews: PreviewProvider {
             .environment(\.managedObjectContext, CoreDataStack.shared.container.viewContext)
     }
 }
+
+// MARK: - Enhanced UI Components
+
+// MARK: - Ultra Minimalist Search Bar
+struct UltraMinimalistSearchBar: View {
+    @Binding var text: String
+    let placeholder: String
+    @FocusState private var isFocused: Bool
+    @Environment(\.colorScheme) private var colorScheme
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Search Icon
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(.secondary)
+                .font(.system(size: 16, weight: .medium))
+            
+            // Text Field
+            TextField(placeholder, text: $text)
+                .font(.system(size: 16, weight: .regular))
+                .foregroundColor(.primary)
+                .focused($isFocused)
+                .submitLabel(.search)
+            
+            // Clear Button
+            if !text.isEmpty {
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        text = ""
+                    }
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                        .font(.system(size: 14, weight: .medium))
+                }
+                .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            .ultraThinMaterial,
+            in: RoundedRectangle(cornerRadius: 10)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(
+                    isFocused ? Color.accentColor.opacity(0.3) : Color.clear,
+                    lineWidth: 1
+                )
+                .animation(.easeInOut(duration: 0.2), value: isFocused)
+        )
+    }
+}
+
+// MARK: - Enhanced Menu
+struct EnhancedMenu<Content: View>: View {
+    let title: String
+    let systemImage: String
+    let content: Content
+    @State private var isPressed = false
+    
+    init(title: String, systemImage: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.systemImage = systemImage
+        self.content = content()
+    }
+    
+    private var buttonGradient: LinearGradient {
+        LinearGradient(
+            gradient: Gradient(colors: [
+                Color.blue.opacity(0.8),
+                Color.purple.opacity(0.6)
+            ]),
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    
+    var body: some View {
+        Menu {
+            content
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 14, weight: .semibold))
+                Text(title)
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 12, weight: .medium))
+                    .rotationEffect(.degrees(isPressed ? 180 : 0))
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(
+                ZStack {
+                    buttonGradient
+                    
+                    // Shine effect
+                    if isPressed {
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.3),
+                                .clear
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    }
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .shadow(
+                color: .blue.opacity(0.4),
+                radius: isPressed ? 12 : 6,
+                x: 0,
+                y: isPressed ? 6 : 3
+            )
+            .scaleEffect(isPressed ? 0.95 : 1.0)
+        }
+        .pressEvents(
+            onPress: {
+                withAnimation(.easeInOut(duration: 0.1)) {
+                    isPressed = true
+                }
+            },
+            onRelease: {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    isPressed = false
+                }
+            }
+        )
+    }
+}
+
+// MARK: - Enhanced Menu Item
+struct EnhancedMenuItem: View {
+    let title: String
+    let systemImage: String
+    let color: Color
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.system(size: 16, weight: .medium, design: .rounded))
+        }
+        .foregroundStyle(
+            LinearGradient(
+                gradient: Gradient(colors: [color, color.opacity(0.7)]),
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        )
+    }
+}
+
+// MARK: - Filter Pill Button
+struct FilterPillButton: View {
+    let title: String
+    let systemImage: String?
+    let isSelected: Bool
+    let color: Color
+    let action: () -> Void
+    
+    @State private var isPressed = false
+    
+    private var backgroundGradient: LinearGradient {
+        if isSelected {
+            return LinearGradient(
+                gradient: Gradient(colors: [color, color.opacity(0.7)]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else {
+            return LinearGradient(
+                gradient: Gradient(colors: [
+                    Color.gray.opacity(0.2),
+                    Color.gray.opacity(0.1)
+                ]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+    }
+    
+    var body: some View {
+        Button(action: {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                action()
+            }
+        }) {
+            HStack(spacing: 6) {
+                if let systemImage = systemImage {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                Text(title)
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+            }
+            .foregroundColor(isSelected ? .white : .primary)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(
+                ZStack {
+                    backgroundGradient
+                    
+                    // Pressed state overlay
+                    if isPressed {
+                        Color.white.opacity(0.2)
+                    }
+                }
+            )
+            .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(
+                        isSelected ? color.opacity(0.5) : Color.gray.opacity(0.3),
+                        lineWidth: 1
+                    )
+            )
+            .shadow(
+                color: isSelected ? color.opacity(0.4) : .black.opacity(0.1),
+                radius: isSelected ? 6 : 2,
+                x: 0,
+                y: isSelected ? 3 : 1
+            )
+            .scaleEffect(isPressed ? 0.95 : 1.0)
+        }
+        .pressEvents(
+            onPress: {
+                withAnimation(.easeInOut(duration: 0.1)) {
+                    isPressed = true
+                }
+            },
+            onRelease: {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    isPressed = false
+                }
+            }
+        )
+    }
+}
+
+// MARK: - Press Event Modifier
+extension View {
+    func pressEvents(onPress: @escaping () -> Void, onRelease: @escaping () -> Void) -> some View {
+        self.simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in onPress() }
+                .onEnded { _ in onRelease() }
+        )
+    }
+}
+
