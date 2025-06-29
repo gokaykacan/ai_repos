@@ -504,6 +504,7 @@ struct TaskListView: View {
                 Text("Are you sure you want to delete \(taskCount) \(taskText)? This action cannot be undone.")
             }
         }
+        .dismissKeyboardSafely()
     }
     
     private func deleteTask(_ task: Task) {
@@ -1024,6 +1025,7 @@ struct CategoriesView: View {
                 Text("Are you sure you want to delete \"\(categoryToDelete?.name ?? "this category")\" and all its \(taskCount) \(taskText)? This action cannot be undone.")
             }
         }
+        .dismissKeyboardSafely()
     }
     
     private func deleteCategories(offsets: IndexSet) {
@@ -1330,6 +1332,7 @@ struct SettingsView: View {
                 Text("Are you sure you want to delete all tasks? Categories will remain.")
             }
         }
+        .dismissKeyboardOnFormTap()
     }
     
     private func clearAllData() {

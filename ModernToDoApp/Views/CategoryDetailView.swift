@@ -62,6 +62,12 @@ struct CategoryDetailView: View {
                 }
             }
         }
+        .simultaneousGesture(
+            TapGesture()
+                .onEnded { _ in
+                    UIApplication.shared.dismissKeyboard()
+                }
+        )
     }
     
     private var nameSection: some View {

@@ -92,6 +92,7 @@ The app uses a **simplified direct Core Data integration** pattern rather than f
 - Tab-based navigation (Tasks, Categories, Settings, Insights)
 - Settings management for notifications and display preferences
 - Data clearing functionality
+- **Smart Keyboard Dismissal**: Automatic keyboard dismissal when tapping outside text fields in all forms
 
 ### Extensions (Placeholder Structure)
 - **Widget**: Home screen widgets structure exists (ToDoWidget/)
@@ -149,7 +150,7 @@ xcodebuild -project ModernToDoApp.xcodeproj -scheme ModernToDoApp test -only-tes
 - `TaskPriority.swift` - Task priority enum with colors and system images
 
 ### Extensions (ModernToDoApp/Extensions/)
-- `Color+Extensions.swift` - Color hex string support
+- `Color+Extensions.swift` - Color hex string support and keyboard dismissal functionality
 
 ## Testing
 
@@ -245,6 +246,23 @@ The test suite includes comprehensive unit tests in `ModernToDoAppTests/`:
 - Improved date parsing with multiple format support
 
 ## Recent Fixes (Latest Update)
+
+### Universal Keyboard Dismissal Implementation (Latest)
+- **Enhanced User Experience**: Implemented comprehensive keyboard dismissal functionality across all form screens
+- **Smart Gesture Integration**: Added `.simultaneousGesture()` for keyboard dismissal that works alongside existing UI interactions
+- **Universal Coverage**: Keyboard automatically dismisses when tapping outside text fields in:
+  - Task creation and editing forms (TaskDetailView)
+  - Category creation and editing forms (CategoryDetailView)  
+  - Search bars in main lists (TaskListView, CategoriesView)
+  - Settings screen forms
+- **Technical Implementation**:
+  - UIApplication extension with `dismissKeyboard()` method
+  - SwiftUI View extensions for different dismissal patterns
+  - Non-intrusive gesture handling that preserves existing UI functionality
+- **User Experience**:
+  - Natural iOS behavior - tap outside text field to dismiss keyboard
+  - Works on all screens with text input without breaking other interactions
+  - Improves form usability and prevents keyboard from staying open unnecessarily
 
 ### Task Detail Sheet Opening Fix (Latest)
 - **Critical Issue**: Task row taps were inconsistent - sometimes opening detail view, sometimes not working

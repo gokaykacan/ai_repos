@@ -72,6 +72,12 @@ struct TaskDetailView: View {
                 }
             }
         }
+        .simultaneousGesture(
+            TapGesture()
+                .onEnded { _ in
+                    UIApplication.shared.dismissKeyboard()
+                }
+        )
     }
     
     private var titleSection: some View {
