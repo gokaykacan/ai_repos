@@ -29,7 +29,7 @@ struct TaskDetailView: View {
         animation: .default)
     private var categories: FetchedResults<TaskCategory>
     
-    init(task: Task? = nil) {
+    init(task: Task? = nil, category: TaskCategory? = nil) {
         self.task = task
         self.isEditing = task != nil
         
@@ -39,7 +39,8 @@ struct TaskDetailView: View {
         self._priority = State(initialValue: TaskPriority(rawValue: Int(task?.priority ?? 1)) ?? .medium)
         self._dueDate = State(initialValue: task?.dueDate)
         self._hasDueDate = State(initialValue: task?.dueDate != nil)
-        self._selectedCategory = State(initialValue: task?.category)
+        // If editing, use the task's category. If creating, use the passed category.
+        self._selectedCategory = State(initialValue: task?.category ?? category)
     }
     
     var body: some View {

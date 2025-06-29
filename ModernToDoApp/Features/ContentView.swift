@@ -4,11 +4,10 @@ import UserNotifications
 
 struct ContentView: View {
     @State private var selectedTab = 0
-    @State private var showingAddTask = false
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            TaskListView(selectedTab: $selectedTab, showAddTask: { showingAddTask = true })
+            TaskListView(selectedTab: $selectedTab)
                 .tabItem {
                     Image(systemName: "list.bullet")
                     Text("Tasks")
@@ -43,9 +42,6 @@ struct ContentView: View {
         }
         .accentColor(.blue)
         .animation(.default, value: selectedTab)
-        .sheet(isPresented: $showingAddTask) {
-            TaskDetailView()
-        }
     }
 }
 
@@ -75,9 +71,9 @@ struct TaskListView: View {
     @State private var activeSheet: TaskSheetType?
     @State private var searchText = ""
     @State private var selectedCategory: TaskCategory?
+    @State private var showingAddTask = false
     @AppStorage("showCompletedTasks") private var showCompletedTasks = true
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
-    let showAddTask: () -> Void
     
     @FetchRequest(
         sortDescriptors: [
@@ -278,11 +274,14 @@ struct TaskListView: View {
             .searchable(text: $searchText, prompt: "Search tasks...")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showAddTask() }) {
+                    Button(action: { showingAddTask = true }) {
                         Image(systemName: "plus.circle.fill")
                             .font(.title2)
                     }
                 }
+            }
+            .sheet(isPresented: $showingAddTask) {
+                TaskDetailView(category: selectedCategory)
             }
             .sheet(item: $activeSheet) { sheetType in
                 switch sheetType {
@@ -295,6 +294,9 @@ struct TaskListView: View {
                         activeSheet = nil
                     }
                 }
+            }
+            .sheet(isPresented: $showingAddTask) {
+                TaskDetailView(category: selectedCategory)
             }
         }
     }
