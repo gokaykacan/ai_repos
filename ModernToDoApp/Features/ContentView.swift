@@ -606,6 +606,7 @@ struct SettingsView: View {
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
     @AppStorage("showCompletedTasks") private var showCompletedTasks = true
     @State private var showingClearDataAlert = false
+    @State private var showingClearTasksAlert = false
     
     var body: some View {
         NavigationView {
@@ -633,6 +634,11 @@ struct SettingsView: View {
                 
                 
                 Section("Data") {
+                    Button("Clear All Tasks") {
+                        showingClearTasksAlert = true
+                    }
+                    .foregroundColor(.red)
+                    
                     Button("Clear All Data") {
                         showingClearDataAlert = true
                     }
@@ -656,6 +662,14 @@ struct SettingsView: View {
                 }
             } message: {
                 Text("Are you sure you want to delete all tasks and categories? This action cannot be undone.")
+            }
+            .alert("Clear All Tasks", isPresented: $showingClearTasksAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Delete Tasks", role: .destructive) {
+                    clearAllTasks()
+                }
+            } message: {
+                Text("Are you sure you want to delete all tasks? Categories will remain.")
             }
         }
     }
@@ -686,6 +700,29 @@ struct SettingsView: View {
                 print("Successfully cleared all data")
             } catch {
                 print("Error clearing data: \(error)")
+            }
+        }
+    }
+    
+    private func clearAllTasks() {
+        withAnimation {
+            do {
+                // Cancel all pending notifications first
+                UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+                
+                // Delete all tasks
+                let taskFetch: NSFetchRequest<Task> = Task.fetchRequest()
+                let tasks = try viewContext.fetch(taskFetch)
+                for task in tasks {
+                    viewContext.delete(task)
+                }
+                
+                // Save changes
+                try viewContext.save()
+                
+                print("Successfully cleared all tasks")
+            } catch {
+                print("Error clearing tasks: \(error)")
             }
         }
     }
