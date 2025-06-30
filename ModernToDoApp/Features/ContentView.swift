@@ -73,12 +73,8 @@ struct TaskListView: View {
     @State private var searchText = ""
     @State private var selectedCategory: TaskCategory?
     @State private var showingAddTask = false
-    @State private var isInSelectionMode = false
-    @State private var selectedTasks: Set<Task> = []
     @State private var showingDeleteTaskAlert = false
     @State private var taskToDelete: Task?
-    @State private var showingDeleteMultipleTasksAlert = false
-    @State private var tasksToDelete: [Task] = []
     @State private var sectionForDeletion: TaskSection?
     @State private var offsetsForDeletion: IndexSet?
     @State private var refreshTrigger = Date()
@@ -178,47 +174,6 @@ struct TaskListView: View {
         return sections
     }
     
-    // MARK: - Selection Mode Helper Functions
-    private func enterSelectionMode(with task: Task) {
-        isInSelectionMode = true
-        selectedTasks.insert(task)
-        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-        impactFeedback.impactOccurred()
-    }
-    
-    private func exitSelectionMode() {
-        isInSelectionMode = false
-        selectedTasks.removeAll()
-    }
-    
-    private func toggleTaskSelection(_ task: Task) {
-        if selectedTasks.contains(task) {
-            selectedTasks.remove(task)
-        } else {
-            selectedTasks.insert(task)
-        }
-        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-        impactFeedback.impactOccurred()
-    }
-    
-    private func deleteSelectedTasks() {
-        withAnimation {
-            for task in selectedTasks {
-                // Cancel notification before deleting
-                if notificationsEnabled {
-                    NotificationManager.shared.cancelNotification(for: task)
-                }
-                viewContext.delete(task)
-            }
-            
-            do {
-                try viewContext.save()
-                exitSelectionMode()
-            } catch {
-                print("Error deleting selected tasks: \(error)")
-            }
-        }
-    }
     
     var body: some View {
         NavigationView {
@@ -340,21 +295,10 @@ struct TaskListView: View {
                                 ForEach(section.tasks, id: \.self) { task in
                                     TaskCardView(
                                         task: task,
-                                        isInSelectionMode: isInSelectionMode,
-                                        isSelected: selectedTasks.contains(task),
                                         onTap: {
-                                            if isInSelectionMode {
-                                                toggleTaskSelection(task)
-                                            } else {
-                                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                                impactFeedback.impactOccurred()
-                                                activeSheet = .detail(task)
-                                            }
-                                        },
-                                        onLongPress: {
-                                            if !isInSelectionMode {
-                                                enterSelectionMode(with: task)
-                                            }
+                                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                            impactFeedback.impactOccurred()
+                                            activeSheet = .detail(task)
                                         },
                                         onEdit: {
                                             activeSheet = .edit(task)
@@ -364,9 +308,7 @@ struct TaskListView: View {
                                             // This ensures SwiftUI re-evaluates the computed properties
                                         }
                                     )
-                                    .if(!isInSelectionMode) { view in
-                                        view
-                                            .swipeActions(edge: .trailing) {
+                                    .swipeActions(edge: .trailing) {
                                                 Button("Delete", role: .destructive) {
                                                     taskToDelete = task
                                                     showingDeleteTaskAlert = true
@@ -419,16 +361,12 @@ struct TaskListView: View {
                                                 }
                                                 .tint(task.isCompleted ? .orange : .green)
                                             }
-                                    }
                                     .listRowSeparator(.hidden)
                                     .listRowBackground(Color.clear)
                                     .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
                                 }
                                 .onDelete { offsets in
-                                    sectionForDeletion = section
-                                    offsetsForDeletion = offsets
-                                    tasksToDelete = offsets.map { section.tasks[$0] }
-                                    showingDeleteMultipleTasksAlert = true
+                                    deleteItems(for: section, at: offsets)
                                 }
                             } header: {
                                 Text(section.title)
@@ -447,34 +385,10 @@ struct TaskListView: View {
             .navigationTitle("Tasks")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
-                // Left toolbar item - varies based on selection mode
-                ToolbarItem(placement: .navigationBarLeading) {
-                    if isInSelectionMode {
-                        Button("Cancel") {
-                            exitSelectionMode()
-                        }
-                    } else {
-                        // Placeholder for existing filter button if any
-                        EmptyView()
-                    }
-                }
-                
-                // Right toolbar item - varies based on selection mode
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    if isInSelectionMode {
-                        if !selectedTasks.isEmpty {
-                            Button("Delete Selected") {
-                                deleteSelectedTasks()
-                            }
-                            .foregroundColor(.red)
-                        } else {
-                            EmptyView()
-                        }
-                    } else {
-                        Button(action: { showingAddTask = true }) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.title2)
-                        }
+                    Button(action: { showingAddTask = true }) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title2)
                     }
                 }
             }
@@ -505,18 +419,6 @@ struct TaskListView: View {
                 }
             } message: {
                 Text("Are you sure you want to delete \"\(taskToDelete?.title ?? "this task")\"? This action cannot be undone.")
-            }
-            .alert("Delete Tasks", isPresented: $showingDeleteMultipleTasksAlert) {
-                Button("Cancel", role: .cancel) { }
-                Button("Delete Tasks", role: .destructive) {
-                    if let section = sectionForDeletion, let offsets = offsetsForDeletion {
-                        deleteItems(for: section, at: offsets)
-                    }
-                }
-            } message: {
-                let taskCount = tasksToDelete.count
-                let taskText = taskCount == 1 ? "task" : "tasks"
-                Text("Are you sure you want to delete \(taskCount) \(taskText)? This action cannot be undone.")
             }
         }
         .onAppear {
@@ -620,7 +522,6 @@ struct TaskListView: View {
             // Reset state
             sectionForDeletion = nil
             offsetsForDeletion = nil
-            self.tasksToDelete = []
         }
     }
 }
@@ -695,19 +596,13 @@ struct PostponeTaskView: View {
 
 struct TaskCardView: View {
     let task: Task
-    let isInSelectionMode: Bool
-    let isSelected: Bool
     let onTap: () -> Void
-    let onLongPress: () -> Void
     let onEdit: (() -> Void)?
     let onTaskUpdated: (() -> Void)?
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.managedObjectContext) private var viewContext
     
     private var cardBackground: Color {
-        if isSelected {
-            return .blue.opacity(0.1)
-        }
         return colorScheme == .dark 
             ? Color(UIColor.systemGray6)
             : Color(UIColor.systemBackground)
@@ -716,21 +611,13 @@ struct TaskCardView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
-                // Selection indicator in selection mode OR checkbox in normal mode
-                if isInSelectionMode {
-                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .foregroundColor(isSelected ? .blue : .gray)
-                        .font(.title2)
-                        .frame(width: 44, height: 44)
-                } else {
-                    // Modern checkbox for completion status - isolated tap area
-                    ModernCheckboxView(
-                        isCompleted: task.isCompleted
-                    ) {
-                        toggleTaskCompletion()
-                    }
-                    .zIndex(1) // Ensure checkbox is above other elements for tap priority
+                // Modern checkbox for completion status - isolated tap area
+                ModernCheckboxView(
+                    isCompleted: task.isCompleted
+                ) {
+                    toggleTaskCompletion()
                 }
+                .zIndex(1) // Ensure checkbox is above other elements for tap priority
                 
                 // Main content area with separate tap gesture
                 VStack(alignment: .leading, spacing: 8) {
@@ -755,11 +642,9 @@ struct TaskCardView: View {
                                 .foregroundColor(task.recurrenceTypeEnum.color)
                         }
                         
-                        if !isInSelectionMode {
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
                     
                     // Metadata row (category, due date)
@@ -815,9 +700,6 @@ struct TaskCardView: View {
                 .onTapGesture {
                     // Tap gesture only on content area, not checkbox
                     onTap()
-                }
-                .onLongPressGesture(minimumDuration: 0.5) {
-                    onLongPress()
                 }
             }
             .padding(16)

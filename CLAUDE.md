@@ -247,7 +247,26 @@ The test suite includes comprehensive unit tests in `ModernToDoAppTests/`:
 
 ## Recent Fixes (Latest Update)
 
-### Dark Mode Persistence Fix (Latest)
+### Long-Press Multi-Selection Removal (Latest)
+- **User Request**: Remove long-press multi-selection behavior entirely from task list
+- **Previous Behavior**: Long-press on task entered multi-selection mode with "Delete Selected" and "Cancel" toolbar buttons
+- **Complete Removal**:
+  - **Selection Mode Elimination**: Removed all multi-selection state variables (`isInSelectionMode`, `selectedTasks`)
+  - **Long-Press Gesture Removal**: Completely removed `.onLongPressGesture()` from task cards
+  - **Toolbar Simplification**: Removed conditional toolbar buttons and kept only the "+" add button
+  - **Alert System Cleanup**: Removed multi-task deletion alerts and confirmation dialogs
+- **Technical Changes**:
+  - Removed `enterSelectionMode()`, `exitSelectionMode()`, `toggleTaskSelection()`, and `deleteSelectedTasks()` functions
+  - Simplified `TaskCardView` by removing selection mode parameters (`isInSelectionMode`, `isSelected`, `onLongPress`)
+  - Streamlined swipe actions to work without conditional selection mode logic
+  - Updated `onDelete` handler to directly delete tasks without confirmation alerts
+- **User Experience**:
+  - Long-press on tasks now does nothing - no selection UI, no action, no visual feedback
+  - Simplified toolbar with only essential "+" button for adding new tasks
+  - All existing functionality preserved: tap to view details, swipe actions for edit/delete/complete
+  - Cleaner, more focused user interface without unnecessary selection complexity
+
+### Dark Mode Persistence Fix
 - **Critical Issue**: Dark mode toggle and app theme were out of sync after app restart - toggle showed correct state but app reverted to wrong theme
 - **Root Cause**: App was only applying dark mode preference on toggle changes, not on app startup, causing stored preference to be ignored on launch
 - **Complete Solution**:
