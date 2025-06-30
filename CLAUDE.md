@@ -419,3 +419,23 @@ The test suite includes comprehensive unit tests in `ModernToDoAppTests/`:
   - Calendar icon now consistently opens date and time picker
   - Matches behavior of working postpone date picker functionality
   - No interference with keyboard dismissal or other UI interactions
+
+### Real-time Overdue Task Movement Fix
+- **Critical Issue**: Tasks weren't automatically moving to "Overdue" section when due dates passed while app was running
+- **Root Cause**: Task categorization used static `Date()` evaluations; SwiftUI only re-evaluates when Core Data changes, not when time passes
+- **Complete Solution**:
+  - **Refresh Trigger**: Added `@State private var refreshTrigger = Date()` to force view re-evaluation
+  - **Dynamic Date Evaluation**: Modified `groupedTasks` computed property to use current date instead of static computed properties
+  - **30-Second Timer**: Implemented periodic refresh every 30 seconds to check for overdue tasks
+  - **App Lifecycle Integration**: Immediate refresh when app returns to foreground via `UIApplication.willEnterForegroundNotification`
+  - **Proper Timer Management**: Timer automatically starts/stops with view appearance/disappearance
+- **Technical Implementation**:
+  - Modified `TaskListView` in `ContentView.swift` with timer-based refresh mechanism
+  - Added `startOverdueTimer()` and `stopOverdueTimer()` functions for lifecycle management
+  - Updated task filtering logic to use real-time date evaluation instead of cached computed properties
+  - Maintained thread safety with `DispatchQueue.main.async` for UI updates
+- **User Experience**: 
+  - Tasks automatically move between sections (Today → Overdue, etc.) in real-time
+  - No need to restart app or manually refresh to see overdue tasks
+  - Battery efficient - timer only runs when TaskListView is active
+  - Smooth transitions without disrupting existing functionality

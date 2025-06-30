@@ -80,6 +80,8 @@ struct TaskListView: View {
     @State private var tasksToDelete: [Task] = []
     @State private var sectionForDeletion: TaskSection?
     @State private var offsetsForDeletion: IndexSet?
+    @State private var refreshTrigger = Date()
+    @State private var overdueTimer: Timer?
     @AppStorage("showCompletedTasks") private var showCompletedTasks = true
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
     
@@ -121,14 +123,26 @@ struct TaskListView: View {
     
     private var groupedTasks: [TaskSection] {
         let calendar = Calendar.current
-        let now = Date()
+        let now = refreshTrigger // Use refreshTrigger to force re-evaluation
 
-        let overdueTasks = filteredTasks.filter { $0.isOverdue && !$0.isCompleted }
-        let todayTasks = filteredTasks.filter { $0.isDueToday && !$0.isCompleted && !$0.isOverdue }
-        let tomorrowTasks = filteredTasks.filter { $0.isDueTomorrow && !$0.isCompleted }
-        let upcomingTasks = filteredTasks.filter {
-            guard let dueDate = $0.dueDate else { return false }
-            return !calendar.isDateInToday(dueDate) && !calendar.isDateInTomorrow(dueDate) && dueDate > now && !$0.isCompleted
+        // Use current date for real-time evaluation instead of computed properties
+        let overdueTasks = filteredTasks.filter { task in
+            guard let dueDate = task.dueDate, !task.isCompleted else { return false }
+            return dueDate < now
+        }
+        let todayTasks = filteredTasks.filter { task in
+            guard let dueDate = task.dueDate, !task.isCompleted else { return false }
+            let isToday = calendar.isDateInToday(dueDate)
+            let isNotOverdue = dueDate >= now
+            return isToday && isNotOverdue
+        }
+        let tomorrowTasks = filteredTasks.filter { task in
+            guard let dueDate = task.dueDate, !task.isCompleted else { return false }
+            return calendar.isDateInTomorrow(dueDate)
+        }
+        let upcomingTasks = filteredTasks.filter { task in
+            guard let dueDate = task.dueDate, !task.isCompleted else { return false }
+            return !calendar.isDateInToday(dueDate) && !calendar.isDateInTomorrow(dueDate) && dueDate > now
         }
         let noDueDateTasks = filteredTasks.filter { $0.dueDate == nil && !$0.isCompleted }
         let completedTasks = filteredTasks.filter { $0.isCompleted }
@@ -504,7 +518,35 @@ struct TaskListView: View {
                 Text("Are you sure you want to delete \(taskCount) \(taskText)? This action cannot be undone.")
             }
         }
+        .onAppear {
+            startOverdueTimer()
+        }
+        .onDisappear {
+            stopOverdueTimer()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            // Refresh immediately when app comes to foreground
+            refreshTrigger = Date()
+        }
         .dismissKeyboardSafely()
+    }
+    
+    // MARK: - Timer Functions for Real-time Overdue Updates
+    private func startOverdueTimer() {
+        // Stop any existing timer
+        stopOverdueTimer()
+        
+        // Create a timer that fires every 30 seconds to check for overdue tasks
+        overdueTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { _ in
+            DispatchQueue.main.async {
+                self.refreshTrigger = Date()
+            }
+        }
+    }
+    
+    private func stopOverdueTimer() {
+        overdueTimer?.invalidate()
+        overdueTimer = nil
     }
     
     private func deleteTask(_ task: Task) {
