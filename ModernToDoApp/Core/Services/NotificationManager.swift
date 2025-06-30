@@ -31,7 +31,7 @@ class NotificationManager: ObservableObject {
         guard dueDate > Date() else { return }
         
         // Get total notification count (delivered + pending) to determine badge number
-        getTotalNotificationCount { totalCount in
+        getTaskNotificationCount { totalCount in
             let content = UNMutableNotificationContent()
             content.title = "Task Due: \(title)"
             
@@ -43,7 +43,7 @@ class NotificationManager: ObservableObject {
             
             content.sound = .default
             // Set badge count for this new notification
-            // content.badge = NSNumber(value: totalCount + 1)
+            content.badge = NSNumber(value: totalCount + 1)
             
             // Set category based on priority
             switch task.priorityEnum {
@@ -143,22 +143,28 @@ class NotificationManager: ObservableObject {
         }
     }
     
-    private func getTotalNotificationCount(completion: @escaping (Int) -> Void) {
+    private func getTaskNotificationCount(completion: @escaping (Int) -> Void) {
         let group = DispatchGroup()
         var deliveredCount = 0
         var pendingCount = 0
         
-        // Get delivered notifications count
+        // Get delivered notifications count (only count task notifications)
         group.enter()
         UNUserNotificationCenter.current().getDeliveredNotifications { notifications in
-            deliveredCount = notifications.count
+            // Filter to only count notifications that start with "Task Due:"
+            deliveredCount = notifications.filter { notification in
+                notification.request.content.title.hasPrefix("Task Due:")
+            }.count
             group.leave()
         }
         
-        // Get pending notifications count
+        // Get pending notifications count (only count task notifications)
         group.enter()
         UNUserNotificationCenter.current().getPendingNotificationRequests { requests in
-            pendingCount = requests.count
+            // Filter to only count notifications that start with "Task Due:"
+            pendingCount = requests.filter { request in
+                request.content.title.hasPrefix("Task Due:")
+            }.count
             group.leave()
         }
         

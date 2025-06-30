@@ -439,3 +439,22 @@ The test suite includes comprehensive unit tests in `ModernToDoAppTests/`:
   - No need to restart app or manually refresh to see overdue tasks
   - Battery efficient - timer only runs when TaskListView is active
   - Smooth transitions without disrupting existing functionality
+
+### Immediate Notification Badge Update Fix
+- **Critical Issue**: App icon badge numbers weren't updating immediately when notifications were delivered in background
+- **Root Cause**: Notification badge setting was commented out; counting logic included all notifications instead of filtering task-specific ones
+- **Complete Solution**:
+  - **Enabled Badge Setting**: Uncommented `content.badge = NSNumber(value: totalCount + 1)` in notification content
+  - **Smart Badge Counting**: Created `getTaskNotificationCount()` to filter and count only task-related notifications
+  - **Task-Specific Filtering**: Filter notifications by "Task Due:" title prefix to avoid counting non-task notifications
+  - **Accurate Incrementation**: Combine delivered + pending task notifications for proper badge calculation
+- **Technical Implementation**:
+  - Modified `NotificationManager.swift` with improved badge counting logic
+  - Replaced `getTotalNotificationCount` with `getTaskNotificationCount` for precise filtering
+  - Added notification filtering by title prefix to distinguish task notifications
+  - Maintained all existing notification scheduling and cancellation logic
+- **User Experience**: 
+  - App icon badge updates instantly when task due notifications are delivered
+  - No need to open app or bring to foreground for badge updates
+  - Accurate badge count reflects only unread task notifications
+  - Works completely in background with iOS automatic badge handling
