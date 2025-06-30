@@ -1,6 +1,7 @@
 import SwiftUI
 import CoreData
 import UserNotifications
+import UIKit
 
 struct ContentView: View {
     @State private var selectedTab = 0
@@ -1352,8 +1353,14 @@ struct SettingsView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section("Appearance") {
+                Section {
                     Toggle("Dark Mode", isOn: $isDarkMode)
+                } header: {
+                    Text("Appearance")
+                } footer: {
+                    Text("Automatically matches your system appearance on first launch.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
                 
                 Section("Notifications") {
@@ -1468,6 +1475,7 @@ struct SettingsView: View {
             }
         }
     }
+    
 }
 
 // Helper for date formatting

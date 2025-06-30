@@ -247,7 +247,25 @@ The test suite includes comprehensive unit tests in `ModernToDoAppTests/`:
 
 ## Recent Fixes (Latest Update)
 
-### Universal Keyboard Dismissal Implementation (Latest)
+### Dark Mode Persistence Fix (Latest)
+- **Critical Issue**: Dark mode toggle and app theme were out of sync after app restart - toggle showed correct state but app reverted to wrong theme
+- **Root Cause**: App was only applying dark mode preference on toggle changes, not on app startup, causing stored preference to be ignored on launch
+- **Complete Solution**:
+  - **App Startup Application**: Added `.onAppear` modifier to apply stored dark mode preference immediately when ContentView loads
+  - **Scene Phase Handling**: Enhanced app lifecycle management to reapply preference when app becomes active from background
+  - **Persistent Preference Storage**: Ensured `@AppStorage("isDarkMode")` value is consistently applied across all app states
+  - **First Launch Detection**: Maintains system appearance detection on first launch while preserving manual user preferences thereafter
+- **Technical Implementation**:
+  - `applyStoredDarkModePreference()` method ensures UI matches stored toggle state on every app launch
+  - Added preference application in both `.onAppear` and `.onChange(of: scenePhase)` for comprehensive coverage
+  - Enhanced app lifecycle management with proper dark mode state synchronization
+- **User Experience**:
+  - Dark mode toggle and app theme now stay perfectly synchronized across app launches
+  - User's manual dark/light mode preference persists reliably after app termination
+  - First launch still automatically matches system appearance as intended
+  - No more confusion between toggle state and actual app appearance
+
+### Universal Keyboard Dismissal Implementation
 - **Enhanced User Experience**: Implemented comprehensive keyboard dismissal functionality across all form screens
 - **Smart Gesture Integration**: Added `.simultaneousGesture()` for keyboard dismissal that works alongside existing UI interactions
 - **Universal Coverage**: Keyboard automatically dismisses when tapping outside text fields in:
