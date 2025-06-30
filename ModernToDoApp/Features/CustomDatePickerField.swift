@@ -29,7 +29,18 @@ struct CustomDatePickerField: View {
             }) {
                 Image(systemName: "calendar")
                     .font(.title2)
+                    .foregroundColor(.blue)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
+            .buttonStyle(PlainButtonStyle())
+            .highPriorityGesture(
+                TapGesture()
+                    .onEnded { _ in
+                        selectedDateInSheet = date ?? Date()
+                        showingDatePickerSheet = true
+                    }
+            )
             .sheet(isPresented: $showingDatePickerSheet) {
                 NavigationView {
                     VStack {

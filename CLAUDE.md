@@ -400,3 +400,22 @@ The test suite includes comprehensive unit tests in `ModernToDoAppTests/`:
 - Animation state management with dedicated `@State` variables
 - Layered visual effects using ZStack and RadialGradient
 - Performance-optimized animation timing and memory management
+
+## Latest Bug Fix (Current Update)
+
+### Calendar Icon Tap Issue Resolution
+- **Critical Issue**: Calendar icon in due date field (TaskDetailView/CustomDatePickerField) was unresponsive to taps
+- **Root Cause**: Gesture conflicts between keyboard dismissal gesture in TaskDetailView and calendar button action
+- **Complete Solution**:
+  - **Enhanced Button Styling**: Added proper visual styling with blue color and 44x44pt tap target
+  - **High Priority Gesture**: Used `.highPriorityGesture()` to ensure calendar button receives tap events before keyboard dismissal
+  - **Content Shape Definition**: Added `.contentShape(Rectangle())` for consistent tap area
+  - **Plain Button Style**: Used `.buttonStyle(PlainButtonStyle())` to prevent styling conflicts
+- **Technical Implementation**:
+  - Modified `CustomDatePickerField.swift:26-43` with enhanced gesture handling
+  - Maintained compatibility with existing keyboard dismissal system
+  - Preserved all existing functionality (date parsing, formatting, sheet presentation)
+- **User Experience**: 
+  - Calendar icon now consistently opens date and time picker
+  - Matches behavior of working postpone date picker functionality
+  - No interference with keyboard dismissal or other UI interactions
