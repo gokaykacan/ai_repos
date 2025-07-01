@@ -1,0 +1,261 @@
+import CoreData
+import CloudKit
+import Foundation
+import Combine
+import UIKit
+
+class PerformanceOptimizedCoreDataStack: ObservableObject {
+    static let shared = PerformanceOptimizedCoreDataStack()
+    
+    // MARK: - Core Data Stack
+    
+    lazy var persistentContainer: NSPersistentCloudKitContainer = {
+        let container = NSPersistentCloudKitContainer(name: "TaskModel")
+        
+        guard let description = container.persistentStoreDescriptions.first else {
+            fatalError("Failed to retrieve persistent store description")
+        }
+        
+        // Enable CloudKit
+        description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
+        description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
+        
+        // Performance optimizations
+        description.setValue("WAL" as NSString, forKey: NSSQLitePragmasOption)
+        description.setOption(true as NSNumber, forKey: NSPersistentStoreFileProtectionKey)
+        
+        container.loadPersistentStores { _, error in
+            if let error = error as NSError? {
+                print("Core Data error: \(error), \(error.userInfo)")
+            }
+        }
+        
+        container.viewContext.automaticallyMergesChangesFromParent = true
+        container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        
+        // Set query generation for consistent reads
+        do {
+            try container.viewContext.setQueryGenerationFrom(.current)
+        } catch {
+            print("Failed to pin viewContext to the current generation: \(error)")
+        }
+        
+        return container
+    }()
+    
+    // MARK: - Background Contexts
+    
+    lazy var backgroundContext: NSManagedObjectContext = {
+        let context = persistentContainer.newBackgroundContext()
+        context.automaticallyMergesChangesFromParent = true
+        context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        return context
+    }()
+    
+    lazy var syncContext: NSManagedObjectContext = {
+        let context = persistentContainer.newBackgroundContext()
+        context.automaticallyMergesChangesFromParent = true
+        context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        context.name = "SyncContext"
+        return context
+    }()
+    
+    // MARK: - Memory Management
+    
+    private var memoryWarningObserver: NSObjectProtocol?
+    
+    private init() {
+        setupMemoryWarningObserver()
+    }
+    
+    private func setupMemoryWarningObserver() {
+        memoryWarningObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleMemoryWarning()
+        }
+    }
+    
+    private func handleMemoryWarning() {
+        // Clear caches and refresh context
+        persistentContainer.viewContext.refreshAllObjects()
+        backgroundContext.refreshAllObjects()
+        syncContext.refreshAllObjects()
+        
+        // Clear any cached data
+        TaskCacheManager.shared.clearCache()
+    }
+    
+    deinit {
+        if let observer = memoryWarningObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+    
+    // MARK: - Batch Operations
+    
+    func performBatchDelete<T: NSManagedObject>(
+        entityType: T.Type,
+        predicate: NSPredicate? = nil
+    ) async throws {
+        let request = NSBatchDeleteRequest(fetchRequest: entityType.fetchRequest())
+        if let predicate = predicate {
+            request.fetchRequest.predicate = predicate
+        }
+        request.resultType = .resultTypeObjectIDs
+        
+        try await backgroundContext.perform {
+            let result = try self.backgroundContext.execute(request) as? NSBatchDeleteResult
+            let objectIDs = result?.result as? [NSManagedObjectID] ?? []
+            
+            let changes = [NSDeletedObjectsKey: objectIDs]
+            NSManagedObjectContext.mergeChanges(fromRemoteContextSave: changes, into: [self.persistentContainer.viewContext])
+        }
+    }
+    
+    func performBatchUpdate<T: NSManagedObject>(
+        entityType: T.Type,
+        predicate: NSPredicate? = nil,
+        propertiesToUpdate: [String: Any]
+    ) async throws {
+        let request = NSBatchUpdateRequest(entityName: String(describing: entityType))
+        request.predicate = predicate
+        request.propertiesToUpdate = propertiesToUpdate
+        request.resultType = .updatedObjectIDsResultType
+        
+        try await backgroundContext.perform {
+            let result = try self.backgroundContext.execute(request) as? NSBatchUpdateResult
+            let objectIDs = result?.result as? [NSManagedObjectID] ?? []
+            
+            let changes = [NSUpdatedObjectsKey: objectIDs]
+            NSManagedObjectContext.mergeChanges(fromRemoteContextSave: changes, into: [self.persistentContainer.viewContext])
+        }
+    }
+    
+    // MARK: - Optimized Save Operations
+    
+    func save() {
+        let context = persistentContainer.viewContext
+        
+        guard context.hasChanges else { return }
+        
+        do {
+            try context.save()
+        } catch {
+            print("Save error: \(error)")
+        }
+    }
+    
+    func saveInBackground() async {
+        await backgroundContext.perform {
+            guard self.backgroundContext.hasChanges else { return }
+            
+            do {
+                try self.backgroundContext.save()
+            } catch {
+                print("Background save error: \(error)")
+            }
+        }
+    }
+    
+    // MARK: - Prefetching Utilities
+    
+    func prefetchRelationships<T: NSManagedObject>(
+        for objects: [T],
+        keyPaths: [String]
+    ) {
+        let objectIDs = objects.map { $0.objectID }
+        let prefetchRequest = NSFetchRequest<NSManagedObject>(entityName: String(describing: T.self))
+        prefetchRequest.predicate = NSPredicate(format: "self IN %@", objectIDs)
+        prefetchRequest.relationshipKeyPathsForPrefetching = keyPaths
+        
+        do {
+            _ = try persistentContainer.viewContext.fetch(prefetchRequest)
+        } catch {
+            print("Prefetch error: \(error)")
+        }
+    }
+}
+
+// MARK: - Cache Manager
+
+class TaskCacheManager {
+    static let shared = TaskCacheManager()
+    
+    private var taskCache: [NSManagedObjectID: Task] = [:]
+    private var categoryCache: [NSManagedObjectID: TaskCategory] = [:]
+    private let cacheQueue = DispatchQueue(label: "TaskCacheQueue", attributes: .concurrent)
+    
+    private init() {}
+    
+    func cacheTask(_ task: Task) {
+        cacheQueue.async(flags: .barrier) {
+            self.taskCache[task.objectID] = task
+        }
+    }
+    
+    func getCachedTask(for objectID: NSManagedObjectID) -> Task? {
+        return cacheQueue.sync {
+            return taskCache[objectID]
+        }
+    }
+    
+    func cacheCategory(_ category: TaskCategory) {
+        cacheQueue.async(flags: .barrier) {
+            self.categoryCache[category.objectID] = category
+        }
+    }
+    
+    func getCachedCategory(for objectID: NSManagedObjectID) -> TaskCategory? {
+        return cacheQueue.sync {
+            return categoryCache[objectID]
+        }
+    }
+    
+    func clearCache() {
+        cacheQueue.async(flags: .barrier) {
+            self.taskCache.removeAll()
+            self.categoryCache.removeAll()
+        }
+    }
+}
+
+// MARK: - Performance Monitoring
+
+class CoreDataPerformanceMonitor {
+    static let shared = CoreDataPerformanceMonitor()
+    
+    private var fetchTimes: [String: TimeInterval] = [:]
+    private let monitorQueue = DispatchQueue(label: "PerformanceMonitorQueue")
+    
+    private init() {}
+    
+    func measureFetch<T>(operation: String, block: () throws -> T) rethrows -> T {
+        let startTime = CFAbsoluteTimeGetCurrent()
+        let result = try block()
+        let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
+        
+        monitorQueue.async {
+            self.fetchTimes[operation] = timeElapsed
+            if timeElapsed > 0.1 { // Log slow operations
+                print("⚠️ Slow Core Data operation: \(operation) took \(timeElapsed)s")
+            }
+        }
+        
+        return result
+    }
+    
+    func getPerformanceMetrics() -> [String: TimeInterval] {
+        return monitorQueue.sync {
+            return fetchTimes
+        }
+    }
+    
+    func clearMetrics() {
+        monitorQueue.async {
+            self.fetchTimes.removeAll()
+        }
+    }
+}

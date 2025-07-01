@@ -64,8 +64,8 @@ struct FloatingActionButton_Previews: PreviewProvider {
         ZStack(alignment: .bottomTrailing) {
             Color.gray.opacity(0.1).ignoresSafeArea()
             FloatingActionButton(mainAction: { print("Main action tapped") }, subActions: [
-                (imageName: "doc.badge.plus", action: { print("Add Task") }, label: "Add Task"),
-                (imageName: "folder.badge.plus", action: { print("Add Category") }, label: "Add Category")
+                (imageName: "doc.badge.plus", action: { print("Add Task") }, label: "fab.add_task".localized),
+                (imageName: "folder.badge.plus", action: { print("Add Category") }, label: "fab.add_category".localized)
             ])
         }
     }

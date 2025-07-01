@@ -13,30 +13,30 @@ enum RecurrenceType: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .none:
-            return "No Repeat"
+            return "recurrence.none".localized
         case .daily:
-            return "Daily"
+            return "recurrence.daily".localized
         case .weekly:
-            return "Weekly"
+            return "recurrence.weekly".localized
         case .monthly:
-            return "Monthly"
+            return "recurrence.monthly".localized
         case .yearly:
-            return "Yearly"
+            return "recurrence.yearly".localized
         }
     }
     
     var description: String {
         switch self {
         case .none:
-            return "Does not repeat"
+            return "recurrence.none_desc".localized
         case .daily:
-            return "Every day"
+            return "recurrence.daily_desc".localized
         case .weekly:
-            return "Every week"
+            return "recurrence.weekly_desc".localized
         case .monthly:
-            return "Every month"
+            return "recurrence.monthly_desc".localized
         case .yearly:
-            return "Every year"
+            return "recurrence.yearly_desc".localized
         }
     }
     
@@ -157,11 +157,11 @@ enum TaskPriority: Int, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .low:
-            return "Low"
+            return "priority.low".localized
         case .medium:
-            return "Medium"
+            return "priority.medium".localized
         case .high:
-            return "High"
+            return "priority.high".localized
         }
     }
     

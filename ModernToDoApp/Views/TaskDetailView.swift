@@ -55,17 +55,17 @@ struct TaskDetailView: View {
                 recurrenceSection
                 categorySection
             }
-            .navigationTitle(isEditing ? "Edit Task" : "New Task")
+            .navigationTitle(isEditing ? "nav.edit_task".localized : "nav.new_task".localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
+                    Button("action.cancel".localized) {
                         dismiss()
                     }
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
+                    Button("action.save".localized) {
                         saveTask()
                     }
                     .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -81,20 +81,20 @@ struct TaskDetailView: View {
     }
     
     private var titleSection: some View {
-        Section("Title") {
-            TextField("Enter task title", text: $title)
+        Section("task.title_section".localized) {
+            TextField("task.title_placeholder".localized, text: $title)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
         }
     }
     
     private var notesSection: some View {
-        Section("Notes") {
+        Section("task.notes_section".localized) {
             if #available(iOS 16.0, *) {
-                TextField("Add notes (optional)", text: $notes, axis: .vertical)
+                TextField("task.notes_placeholder".localized, text: $notes, axis: .vertical)
                     .lineLimit(3...6)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
             } else {
-                TextField("Add notes (optional)", text: $notes)
+                TextField("task.notes_placeholder".localized, text: $notes)
                     .lineLimit(6)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
             }
@@ -102,8 +102,8 @@ struct TaskDetailView: View {
     }
     
     private var prioritySection: some View {
-        Section("Priority") {
-            Picker("Select Priority", selection: $priority) {
+        Section("task.priority".localized) {
+            Picker("task.select_priority".localized, selection: $priority) {
                 ForEach(TaskPriority.allCases, id: \.rawValue) { priorityLevel in
                     HStack {
                         Image(systemName: priorityLevel.systemImage)
@@ -118,8 +118,8 @@ struct TaskDetailView: View {
     }
     
     private var dueDateSection: some View {
-        Section("Due Date") {
-            Toggle("Set due date", isOn: $hasDueDate)
+        Section("task.due_date".localized) {
+            Toggle("task.set_due_date".localized, isOn: $hasDueDate)
                 .onChange(of: hasDueDate) { enabled in
                     if enabled && dueDate == nil {
                         dueDate = Calendar.current.date(byAdding: .day, value: 1, to: Date())
@@ -141,7 +141,7 @@ struct TaskDetailView: View {
                     Image(systemName: "repeat")
                         .foregroundColor(.blue)
                         .frame(width: 20)
-                    Text("Repeat")
+                    Text("task.repeat".localized)
                         .font(.headline)
                     
                     Spacer()
@@ -153,7 +153,7 @@ struct TaskDetailView: View {
                     }
                 }
                 
-                Picker("Recurrence", selection: $recurrenceType) {
+                Picker("recurrence.title".localized, selection: $recurrenceType) {
                     ForEach(RecurrenceType.allCases) { type in
                         HStack {
                             Image(systemName: type.systemImage)
@@ -177,7 +177,7 @@ struct TaskDetailView: View {
                         Image(systemName: "exclamationmark.triangle")
                             .foregroundColor(.orange)
                             .font(.caption)
-                        Text("Recurring tasks require a due date")
+                        Text("task.recurring_requires_date".localized)
                             .font(.caption)
                             .foregroundColor(.orange)
                     }
@@ -190,7 +190,7 @@ struct TaskDetailView: View {
                         Image(systemName: "calendar.badge.plus")
                             .foregroundColor(.green)
                             .font(.caption)
-                        Text("Next: \(DateFormatter.taskDate.string(from: nextDate))")
+                        Text("task.next_occurrence".localized(with: DateFormatter.taskDate.string(from: nextDate)))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -198,10 +198,10 @@ struct TaskDetailView: View {
                 }
             }
         } header: {
-            Text("Recurrence")
+            Text("recurrence.title".localized)
         } footer: {
             if recurrenceType != .none {
-                Text("A new task will be created automatically when you complete this task.")
+                Text("task.recurring_description".localized)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -209,22 +209,22 @@ struct TaskDetailView: View {
     }
     
     private var categorySection: some View {
-        Section("Category") {
+        Section("task.category".localized) {
             if categories.isEmpty {
-                Button("Create First Category") {
+                Button("category.create_first".localized) {
                     createDefaultCategory()
                 }
                 .foregroundColor(.blue)
             } else {
-                Picker("Category", selection: $selectedCategory) {
-                    Text("None").tag(nil as TaskCategory?)
+                Picker("task.category".localized, selection: $selectedCategory) {
+                    Text("option.none".localized).tag(nil as TaskCategory?)
                     
                     ForEach(categories, id: \.self) { category in
                         HStack {
                             Circle()
                                 .fill(Color(hex: category.colorHex ?? "#007AFF"))
                                 .frame(width: 12, height: 12)
-                            Text(category.name ?? "Unnamed")
+                            Text(category.name ?? "category.unnamed".localized)
                         }
                         .tag(category as TaskCategory?)
                     }
@@ -295,7 +295,7 @@ struct TaskDetailView: View {
         withAnimation {
             let category = TaskCategory(context: viewContext)
             category.id = UUID()
-            category.name = "Personal"
+            category.name = "personal.category_name".localized
             category.colorHex = "#007AFF"
             category.icon = "person"
             category.createdAt = Date()

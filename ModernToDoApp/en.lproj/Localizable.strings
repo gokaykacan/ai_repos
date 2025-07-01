@@ -28,6 +28,7 @@
 "action.incomplete" = "Incomplete";
 "action.postpone" = "Postpone";
 "action.add" = "Add";
+"action.view" = "View";
 
 // MARK: - Task List
 "task.no_tasks" = "No tasks found. Tap '+' to add a new task!";
@@ -240,3 +241,49 @@
 "performance.force_memory_cleanup" = "Force Memory Cleanup";
 "performance.generate_report" = "Generate Performance Report";
 "performance.settings" = "Performance Settings";
+
+// MARK: - Missing Task Detail Strings
+"task.title_section" = "Title";
+"task.notes_section" = "Notes";
+"task.set_due_date" = "Set due date";
+"task.select_priority" = "Select Priority";
+"task.recurring_description" = "A new task will be created automatically when you complete this task.";
+"personal.category_name" = "Personal";
+
+// MARK: - Missing Category Detail Strings
+"category.name_section" = "Name";
+"category.statistics" = "Statistics";
+"category.create_first" = "Create First Category";
+
+// MARK: - Missing Date Picker Strings
+"date.placeholder_example" = "e.g., 27/06/2025 14:30";
+"date.select_due_date" = "Select Due Date";
+
+// MARK: - Missing Action Strings
+"action.done" = "Done";
+"action.delete_all_tasks" = "Delete All Tasks";
+"action.delete_category" = "Delete Category";
+"action.delete_completed" = "Delete Completed";
+
+// MARK: - Missing Alert Strings for Categories
+"alert.delete_completed_title" = "Delete Completed Tasks";
+"alert.delete_completed_message" = "Are you sure you want to delete all completed tasks from \"%@\"? This action cannot be undone.";
+"alert.delete_all_tasks_title" = "Delete All Tasks";
+"alert.delete_all_tasks_message" = "Are you sure you want to delete all tasks from \"%@\"? This action cannot be undone.";
+
+// MARK: - Missing Recurrence Descriptions
+"recurrence.none_desc" = "Does not repeat";
+"recurrence.daily_desc" = "Repeats every day";
+"recurrence.weekly_desc" = "Repeats every week";
+"recurrence.monthly_desc" = "Repeats every month";
+"recurrence.yearly_desc" = "Repeats every year";
+
+// MARK: - Task Status and State
+"task.untitled_subtask" = "Untitled Subtask";
+"task.task_count" = "%d task";
+"task.tasks_count" = "%d tasks";
+
+// MARK: - Empty States
+"empty.no_tasks_category" = "No tasks in this category yet";
+"empty.add_first_task" = "Add your first task to get started";
+"empty.no_completed" = "No completed tasks found";

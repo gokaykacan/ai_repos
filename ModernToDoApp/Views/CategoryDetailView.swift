@@ -45,17 +45,17 @@ struct CategoryDetailView: View {
                     statsSection
                 }
             }
-            .navigationTitle(isEditing ? "Edit Category" : "New Category")
+            .navigationTitle(isEditing ? "nav.edit_category".localized : "nav.new_category".localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
+                    Button("action.cancel".localized) {
                         dismiss()
                     }
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
+                    Button("action.save".localized) {
                         saveCategory()
                     }
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -71,14 +71,14 @@ struct CategoryDetailView: View {
     }
     
     private var nameSection: some View {
-        Section("Name") {
-            TextField("Enter category name", text: $name)
+        Section("category.name_section".localized) {
+            TextField("category.name_placeholder".localized, text: $name)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
         }
     }
     
     private var colorSection: some View {
-        Section("Color") {
+        Section("category.color".localized) {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5), spacing: 12) {
                 ForEach(predefinedColors, id: \.self) { colorHex in
                     Circle()
@@ -98,7 +98,7 @@ struct CategoryDetailView: View {
     }
     
     private var iconSection: some View {
-        Section("Icon") {
+        Section("category.icon".localized) {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5), spacing: 12) {
                 ForEach(categoryIcons, id: \.self) { icon in
                     Circle()
@@ -123,24 +123,24 @@ struct CategoryDetailView: View {
     }
     
     private var statsSection: some View {
-        Section("Statistics") {
+        Section("category.statistics".localized) {
             if let category = category {
                 HStack {
-                    Text("Tasks")
+                    Text("stats.tasks".localized)
                     Spacer()
                     Text("\(category.tasks?.count ?? 0)")
                         .foregroundColor(.secondary)
                 }
                 
                 HStack {
-                    Text("Completed")
+                    Text("stats.completed".localized)
                     Spacer()
                     Text("\(completedTasksCount)")
                         .foregroundColor(.secondary)
                 }
                 
                 HStack {
-                    Text("Created")
+                    Text("stats.created".localized)
                     Spacer()
                     Text(DateFormatter.taskDate.string(from: category.createdAt ?? Date()))
                         .foregroundColor(.secondary)

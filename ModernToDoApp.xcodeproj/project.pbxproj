@@ -25,6 +25,14 @@
 		6E57FA2B2E0F302300B6364B /* FloatingActionButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E57FA2A2E0F302300B6364B /* FloatingActionButton.swift */; };
 		6E57FA2D2E0F317000B6364B /* CustomDatePickerField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E57FA2C2E0F317000B6364B /* CustomDatePickerField.swift */; };
 		6E57FA2F2E0F357F00B6364B /* ProductivityChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E57FA2E2E0F357F00B6364B /* ProductivityChartView.swift */; };
+		6E6E0E7D2E131BE700C459DD /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 6E6E0E7B2E131BE700C459DD /* Localizable.strings */; };
+		6E6E0E812E131C0700C459DD /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 6E6E0E7F2E131C0700C459DD /* Localizable.strings */; };
+		6E6E0E832E131DD300C459DD /* LanguageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E6E0E822E131DD300C459DD /* LanguageManager.swift */; };
+		6E6E0E852E14516D00C459DD /* OptimizedTaskListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E6E0E842E14516D00C459DD /* OptimizedTaskListView.swift */; };
+		6E6E0E872E14517700C459DD /* PerformanceAnalytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E6E0E862E14517700C459DD /* PerformanceAnalytics.swift */; };
+		6E6E0E892E14517F00C459DD /* AdvancedOptimizations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E6E0E882E14517F00C459DD /* AdvancedOptimizations.swift */; };
+		6E6E0E8B2E14518600C459DD /* PaginatedTaskRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E6E0E8A2E14518600C459DD /* PaginatedTaskRepository.swift */; };
+		6E6E0E8D2E14518C00C459DD /* PerformanceOptimizedCoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E6E0E8C2E14518C00C459DD /* PerformanceOptimizedCoreDataStack.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,6 +55,14 @@
 		6E57FA2A2E0F302300B6364B /* FloatingActionButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingActionButton.swift; sourceTree = "<group>"; };
 		6E57FA2C2E0F317000B6364B /* CustomDatePickerField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomDatePickerField.swift; sourceTree = "<group>"; };
 		6E57FA2E2E0F357F00B6364B /* ProductivityChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductivityChartView.swift; sourceTree = "<group>"; };
+		6E6E0E7A2E131BE700C459DD /* tr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = tr; path = Localizable.strings; sourceTree = "<group>"; };
+		6E6E0E7E2E131C0700C459DD /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = Localizable.strings; sourceTree = "<group>"; };
+		6E6E0E822E131DD300C459DD /* LanguageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageManager.swift; sourceTree = "<group>"; };
+		6E6E0E842E14516D00C459DD /* OptimizedTaskListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptimizedTaskListView.swift; sourceTree = "<group>"; };
+		6E6E0E862E14517700C459DD /* PerformanceAnalytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceAnalytics.swift; sourceTree = "<group>"; };
+		6E6E0E882E14517F00C459DD /* AdvancedOptimizations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedOptimizations.swift; sourceTree = "<group>"; };
+		6E6E0E8A2E14518600C459DD /* PaginatedTaskRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaginatedTaskRepository.swift; sourceTree = "<group>"; };
+		6E6E0E8C2E14518C00C459DD /* PerformanceOptimizedCoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceOptimizedCoreDataStack.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,6 +95,8 @@
 		1A0000FF0000000000000001 /* ModernToDoApp */ = {
 			isa = PBXGroup;
 			children = (
+				6E6E0E802E131C0700C459DD /* en.lproj */,
+				6E6E0E7C2E131BE700C459DD /* tr.lproj */,
 				1A0001000000000000000001 /* ModernToDoAppApp.swift */,
 				1A000114000000000000001 /* Core */,
 				1A000115000000000000001 /* Features */,
@@ -114,6 +132,7 @@
 		1A000115000000000000001 /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				6E6E0E842E14516D00C459DD /* OptimizedTaskListView.swift */,
 				6E57FA2E2E0F357F00B6364B /* ProductivityChartView.swift */,
 				6E57FA2C2E0F317000B6364B /* CustomDatePickerField.swift */,
 				6E57FA2A2E0F302300B6364B /* FloatingActionButton.swift */,
@@ -168,9 +187,30 @@
 		1A00012C000000000000001 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				6E6E0E8C2E14518C00C459DD /* PerformanceOptimizedCoreDataStack.swift */,
+				6E6E0E8A2E14518600C459DD /* PaginatedTaskRepository.swift */,
+				6E6E0E882E14517F00C459DD /* AdvancedOptimizations.swift */,
+				6E6E0E862E14517700C459DD /* PerformanceAnalytics.swift */,
+				6E6E0E822E131DD300C459DD /* LanguageManager.swift */,
 				1A00012D000000000000001 /* NotificationManager.swift */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		6E6E0E7C2E131BE700C459DD /* tr.lproj */ = {
+			isa = PBXGroup;
+			children = (
+				6E6E0E7B2E131BE700C459DD /* Localizable.strings */,
+			);
+			path = tr.lproj;
+			sourceTree = "<group>";
+		};
+		6E6E0E802E131C0700C459DD /* en.lproj */ = {
+			isa = PBXGroup;
+			children = (
+				6E6E0E7F2E131C0700C459DD /* Localizable.strings */,
+			);
+			path = en.lproj;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -215,6 +255,7 @@
 			knownRegions = (
 				en,
 				Base,
+				tr,
 			);
 			mainGroup = 1A0000F40000000000000001;
 			productRefGroup = 1A0000FE0000000000000001 /* Products */;
@@ -232,6 +273,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				1A0001080000000000000001 /* Preview Assets.xcassets in Resources */,
+				6E6E0E812E131C0700C459DD /* Localizable.strings in Resources */,
+				6E6E0E7D2E131BE700C459DD /* Localizable.strings in Resources */,
 				1A0001050000000000000001 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -246,23 +289,48 @@
 				1A000113000000000000001 /* TaskModel.xcdatamodeld in Sources */,
 				1A0001030000000000000001 /* ContentView.swift in Sources */,
 				1A0001010000000000000001 /* ModernToDoAppApp.swift in Sources */,
+				6E6E0E8B2E14518600C459DD /* PaginatedTaskRepository.swift in Sources */,
+				6E6E0E8D2E14518C00C459DD /* PerformanceOptimizedCoreDataStack.swift in Sources */,
 				6E57FA272E0F2A2500B6364B /* AnimatedCheckbox.swift in Sources */,
 				1A000110000000000000001 /* CoreDataStack.swift in Sources */,
 				1A000117000000000000001 /* TaskDetailView.swift in Sources */,
+				6E6E0E892E14517F00C459DD /* AdvancedOptimizations.swift in Sources */,
 				1A000119000000000000001 /* CategoryDetailView.swift in Sources */,
 				6E57FA2D2E0F317000B6364B /* CustomDatePickerField.swift in Sources */,
 				1A00011B000000000000001 /* TaskPriority.swift in Sources */,
 				6E57FA2F2E0F357F00B6364B /* ProductivityChartView.swift in Sources */,
 				1A00011D000000000000001 /* Color+Extensions.swift in Sources */,
 				6E57FA2B2E0F302300B6364B /* FloatingActionButton.swift in Sources */,
+				6E6E0E872E14517700C459DD /* PerformanceAnalytics.swift in Sources */,
 				1A00011F000000000000001 /* Task+Extensions.swift in Sources */,
+				6E6E0E852E14516D00C459DD /* OptimizedTaskListView.swift in Sources */,
 				1A00012A000000000000001 /* TaskCategory+Extensions.swift in Sources */,
 				1A00012B000000000000001 /* NotificationManager.swift in Sources */,
+				6E6E0E832E131DD300C459DD /* LanguageManager.swift in Sources */,
 				6E57FA292E0F2AF000B6364B /* PriorityIndicatorView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		6E6E0E7B2E131BE700C459DD /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				6E6E0E7A2E131BE700C459DD /* tr */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+		6E6E0E7F2E131C0700C459DD /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				6E6E0E7E2E131C0700C459DD /* en */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		1A0001090000000000000001 /* Debug */ = {

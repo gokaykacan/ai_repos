@@ -2,8 +2,87 @@ import SwiftUI
 import CoreData
 import UserNotifications
 
+// AppDelegate to handle notification actions
+class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+    
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        // Set notification center delegate
+        UNUserNotificationCenter.current().delegate = self
+        return true
+    }
+    
+    // Handle notification actions
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        
+        let actionIdentifier = response.actionIdentifier
+        let notificationIdentifier = response.notification.request.identifier
+        
+        // Parse task ID from notification identifier (it should be task.id.uuidString)
+        guard let taskUUID = UUID(uuidString: notificationIdentifier) else {
+            completionHandler()
+            return
+        }
+        
+        let context = CoreDataStack.shared.container.viewContext
+        
+        // Find the task
+        let fetchRequest: NSFetchRequest<Task> = Task.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "id == %@", taskUUID as CVarArg)
+        
+        do {
+            let tasks = try context.fetch(fetchRequest)
+            guard let task = tasks.first else {
+                completionHandler()
+                return
+            }
+            
+            switch actionIdentifier {
+            case "COMPLETE_ACTION":
+                // Mark task as completed
+                task.handleTaskCompletion(in: context)
+                NotificationManager.shared.cancelNotification(for: task)
+                
+            case "POSTPONE_ACTION":
+                // Postpone task by 1 hour
+                if let currentDueDate = task.dueDate {
+                    let newDueDate = Calendar.current.date(byAdding: .hour, value: 1, to: currentDueDate) ?? currentDueDate
+                    task.dueDate = newDueDate
+                    task.updatedAt = Date()
+                    
+                    // Reschedule notification
+                    NotificationManager.shared.updateNotification(for: task)
+                }
+                
+            case "VIEW_ACTION", UNNotificationDefaultActionIdentifier:
+                // Open app to view task - this will happen automatically
+                break
+                
+            default:
+                break
+            }
+            
+            // Save changes
+            try context.save()
+            
+        } catch {
+            print("Error handling notification action: \(error)")
+        }
+        
+        completionHandler()
+    }
+    
+    // Handle notifications when app is in foreground
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        
+        // Show notification even when app is in foreground
+        completionHandler([.banner, .sound, .badge])
+    }
+}
+
 @main
 struct ModernToDoAppApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    
     let persistenceController = CoreDataStack.shared
     @AppStorage("isDarkMode") private var isDarkMode = false
     @AppStorage("isFirstLaunch") private var isFirstLaunch = true

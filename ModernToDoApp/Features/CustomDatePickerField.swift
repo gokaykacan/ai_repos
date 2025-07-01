@@ -8,7 +8,7 @@ struct CustomDatePickerField: View {
 
     var body: some View {
         HStack {
-            TextField("e.g., 27/06/2025 14:30", text: $dateString)
+            TextField("date.placeholder_example".localized, text: $dateString)
                 .keyboardType(.default)
                 .onChange(of: dateString) { newValue in
                     if let parsedDate = parseDate(from: newValue) {
@@ -57,16 +57,16 @@ struct CustomDatePickerField: View {
                         
                         Spacer()
                     }
-                    .navigationTitle("Select Due Date")
+                    .navigationTitle("date.select_due_date".localized)
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .navigationBarLeading) {
-                            Button("Cancel") {
+                            Button("action.cancel".localized) {
                                 showingDatePickerSheet = false // Dismiss without saving
                             }
                         }
                         ToolbarItem(placement: .navigationBarTrailing) {
-                            Button("Done") {
+                            Button("action.done".localized) {
                                 date = selectedDateInSheet
                                 dateString = formatDateForDisplay(selectedDateInSheet)
                                 showingDatePickerSheet = false

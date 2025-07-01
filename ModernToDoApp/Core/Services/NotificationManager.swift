@@ -13,6 +13,7 @@ class NotificationManager: ObservableObject {
             DispatchQueue.main.async {
                 if granted {
                     print("Notification permission granted")
+                    self.setupNotificationCategories()
                 } else if let error = error {
                     print("Notification permission error: \(error.localizedDescription)")
                 } else {
@@ -20,6 +21,58 @@ class NotificationManager: ObservableObject {
                 }
             }
         }
+    }
+    
+    private func setupNotificationCategories() {
+        // Create notification actions for better UX
+        let completeAction = UNNotificationAction(
+            identifier: "COMPLETE_ACTION",
+            title: "✅ " + "action.complete".localized,
+            options: [.foreground]
+        )
+        
+        let postponeAction = UNNotificationAction(
+            identifier: "POSTPONE_ACTION", 
+            title: "⏰ " + "action.postpone".localized,
+            options: [.foreground]
+        )
+        
+        let viewAction = UNNotificationAction(
+            identifier: "VIEW_ACTION",
+            title: "👁️ " + "action.view".localized,
+            options: [.foreground]
+        )
+        
+        // Define notification categories with actions and visual indicators
+        let highPriorityCategory = UNNotificationCategory(
+            identifier: "HIGH_PRIORITY_TASK",
+            actions: [completeAction, postponeAction, viewAction],
+            intentIdentifiers: [],
+            options: [.customDismissAction]
+        )
+        
+        let mediumPriorityCategory = UNNotificationCategory(
+            identifier: "MEDIUM_PRIORITY_TASK", 
+            actions: [completeAction, postponeAction],
+            intentIdentifiers: [],
+            options: [.customDismissAction]
+        )
+        
+        let lowPriorityCategory = UNNotificationCategory(
+            identifier: "LOW_PRIORITY_TASK",
+            actions: [completeAction, viewAction],
+            intentIdentifiers: [],
+            options: [.customDismissAction]
+        )
+        
+        // Register categories with the notification center
+        UNUserNotificationCenter.current().setNotificationCategories([
+            highPriorityCategory,
+            mediumPriorityCategory, 
+            lowPriorityCategory
+        ])
+        
+        print("Notification categories with actions registered")
     }
     
     func scheduleNotification(for task: Task) {
@@ -33,27 +86,52 @@ class NotificationManager: ObservableObject {
         // Get total notification count (delivered + pending) to determine badge number
         getTaskNotificationCount { totalCount in
             let content = UNMutableNotificationContent()
-            content.title = "Task Due: \(title)"
             
-            if let notes = task.notes, !notes.isEmpty {
-                content.body = notes
-            } else {
-                content.body = "Your task is due now"
+            // Add priority-based emojis and formatting
+            let priorityEmoji: String
+            let urgencyText: String
+            
+            switch task.priorityEnum {
+            case .high:
+                priorityEmoji = "🔴"
+                urgencyText = "🚨 " + "priority.high".localized.uppercased()
+                content.categoryIdentifier = "HIGH_PRIORITY_TASK"
+                content.sound = .defaultCritical
+            case .medium:
+                priorityEmoji = "🟡"
+                urgencyText = "⚠️ " + "priority.medium".localized
+                content.categoryIdentifier = "MEDIUM_PRIORITY_TASK"
+                content.sound = .default
+            case .low:
+                priorityEmoji = "🟢"
+                urgencyText = "ℹ️ " + "priority.low".localized
+                content.categoryIdentifier = "LOW_PRIORITY_TASK"
+                content.sound = .default
             }
             
-            content.sound = .default
+            // Enhanced title with visual priority indicators
+            content.title = "\(priorityEmoji) " + "notification.task_due_title".localized(with: title)
+            
+            // Enhanced body with urgency and notes
+            var bodyText = urgencyText + "\n"
+            if let notes = task.notes, !notes.isEmpty {
+                bodyText += "📝 " + notes
+            } else {
+                bodyText += "📋 " + "notification.task_due_body".localized
+            }
+            
+            // Add category info if available
+            if let category = task.category {
+                bodyText += "\n📁 " + (category.name ?? "category.unnamed".localized)
+            }
+            
+            content.body = bodyText
+            
             // Set badge count for this new notification
             content.badge = NSNumber(value: totalCount + 1)
             
-            // Set category based on priority
-            switch task.priorityEnum {
-            case .high:
-                content.categoryIdentifier = "HIGH_PRIORITY_TASK"
-            case .medium:
-                content.categoryIdentifier = "MEDIUM_PRIORITY_TASK"
-            case .low:
-                content.categoryIdentifier = "LOW_PRIORITY_TASK"
-            }
+            // Add thread identifier for grouping notifications
+            content.threadIdentifier = "task-notifications"
             
             // Create trigger for the exact due date
             let calendar = Calendar.current

@@ -685,16 +685,11 @@ struct TaskCardView: View {
                             .lineLimit(2)
                     }
                     
-                    // Progress indicator for subtasks
+                    // Progress indicator for subtasks - simplified
                     if task.subtaskArray.count > 0 {
-                        VStack(alignment: .leading, spacing: 4) {
-                            ProgressView(value: task.completionPercentage)
-                                .progressViewStyle(.linear)
-                                .tint(.accentColor)
-                            Text("\(Int(task.completionPercentage * 100))" + "task.progress_completed".localized + " • \(task.completedSubtasks.count)/\(task.subtaskArray.count) " + "task.subtasks".localized)
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
+                        Text("\(task.completedSubtasks.count)/\(task.subtaskArray.count) subtasks")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
                     }
                 }
                 .contentShape(Rectangle())
@@ -797,6 +792,8 @@ struct CategoriesView: View {
     @State private var showingDeleteCategoryAlert = false
     @State private var categoryToDelete: TaskCategory?
     @State private var selectedCategoryForTask: TaskCategory?
+    @State private var showingDeleteCompletedAlert = false
+    @State private var categoryToDeleteCompletedFrom: TaskCategory?
     
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \TaskCategory.sortOrder, ascending: true)])
@@ -922,19 +919,25 @@ struct CategoriesView: View {
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
                         .swipeActions(edge: .trailing) {
-                            Button("Edit") {
+                            Button("action.edit".localized) {
                                 editingCategory = category
                             }
                             .tint(.blue)
                             
-                            Button("Delete All Tasks") {
+                            Button("action.delete_completed".localized) {
+                                categoryToDeleteCompletedFrom = category
+                                showingDeleteCompletedAlert = true
+                            }
+                            .tint(.green)
+                            
+                            Button("action.delete_all_tasks".localized) {
                                 categoryToDeleteTasksFrom = category
                                 showingDeleteTasksAlert = true
                             }
                             .tint(.orange)
                         }
                         .swipeActions(edge: .leading) {
-                            Button("Delete Category", role: .destructive) {
+                            Button("action.delete_category".localized, role: .destructive) {
                                 categoryToDelete = category
                                 showingDeleteCategoryAlert = true
                             }
@@ -967,27 +970,37 @@ struct CategoriesView: View {
             .sheet(item: $selectedCategoryForTask) { category in
                 TaskDetailView(category: category)
             }
-            .alert("Delete All Tasks", isPresented: $showingDeleteTasksAlert) {
-                Button("Cancel", role: .cancel) { }
-                Button("Delete All Tasks", role: .destructive) {
+            .alert("alert.delete_all_tasks_title".localized, isPresented: $showingDeleteTasksAlert) {
+                Button("action.cancel".localized, role: .cancel) { }
+                Button("action.delete_all_tasks".localized, role: .destructive) {
                     if let category = categoryToDeleteTasksFrom {
                         deleteAllTasksFromCategory(category)
                     }
                 }
             } message: {
-                Text("Are you sure you want to delete all tasks from \"\(categoryToDeleteTasksFrom?.name ?? "this category")\"? This action cannot be undone.")
+                Text("alert.delete_all_tasks_message".localized(with: categoryToDeleteTasksFrom?.name ?? "this category"))
             }
-            .alert("Delete Category", isPresented: $showingDeleteCategoryAlert) {
-                Button("Cancel", role: .cancel) { }
-                Button("Delete Category", role: .destructive) {
+            .alert("alert.delete_category_title".localized, isPresented: $showingDeleteCategoryAlert) {
+                Button("action.cancel".localized, role: .cancel) { }
+                Button("action.delete_category".localized, role: .destructive) {
                     if let category = categoryToDelete {
                         deleteCategory(category)
                     }
                 }
             } message: {
                 let taskCount = categoryToDelete?.tasks?.count ?? 0
-                let taskText = taskCount == 1 ? "task" : "tasks"
-                Text("Are you sure you want to delete \"\(categoryToDelete?.name ?? "this category")\" and all its \(taskCount) \(taskText)? This action cannot be undone.")
+                let taskText = taskCount == 1 ? "task.singular".localized : "task.plural".localized
+                Text("alert.delete_category_message".localized(with: categoryToDelete?.name ?? "this category") + " \(taskCount) \(taskText)? This action cannot be undone.")
+            }
+            .alert("alert.delete_completed_title".localized, isPresented: $showingDeleteCompletedAlert) {
+                Button("action.cancel".localized, role: .cancel) { }
+                Button("action.delete".localized, role: .destructive) {
+                    if let category = categoryToDeleteCompletedFrom {
+                        deleteCompletedTasksFromCategory(category)
+                    }
+                }
+            } message: {
+                Text("alert.delete_completed_message".localized(with: categoryToDeleteCompletedFrom?.name ?? "this category"))
             }
         }
         .dismissKeyboardSafely()
@@ -1081,6 +1094,60 @@ struct CategoriesView: View {
             
             // Reset state
             categoryToDeleteTasksFrom = nil
+        }
+    }
+    
+    private func deleteCompletedTasksFromCategory(_ category: TaskCategory) {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            // Add haptic feedback
+            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+            impactFeedback.impactOccurred()
+            
+            // Get all completed tasks from this category
+            guard let allTasks = category.tasks as? Set<Task> else { 
+                print("No tasks found in category")
+                return 
+            }
+            
+            let completedTasks = allTasks.filter { $0.isCompleted }
+            
+            guard !completedTasks.isEmpty else {
+                print("No completed tasks found in category")
+                // Still provide feedback for empty operation
+                let warningFeedback = UINotificationFeedbackGenerator()
+                warningFeedback.notificationOccurred(.warning)
+                categoryToDeleteCompletedFrom = nil
+                return
+            }
+            
+            // Cancel notifications for completed tasks being deleted (should be none, but just in case)
+            for task in completedTasks {
+                NotificationManager.shared.cancelNotification(for: task)
+            }
+            
+            // Delete all completed tasks
+            for task in completedTasks {
+                viewContext.delete(task)
+            }
+            
+            do {
+                try viewContext.save()
+                print("Successfully deleted \(completedTasks.count) completed tasks from category: \(category.name ?? "Unknown")")
+                
+                // Additional haptic feedback for success
+                let successFeedback = UINotificationFeedbackGenerator()
+                successFeedback.notificationOccurred(.success)
+                
+            } catch {
+                print("Error deleting completed tasks from category: \(error)")
+                
+                // Error haptic feedback
+                let errorFeedback = UINotificationFeedbackGenerator()
+                errorFeedback.notificationOccurred(.error)
+            }
+            
+            // Reset state
+            categoryToDeleteCompletedFrom = nil
         }
     }
 }

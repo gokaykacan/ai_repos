@@ -1,0 +1,407 @@
+import Foundation
+import CoreData
+import UIKit
+import Network
+import Combine
+
+// MARK: - Prefetching Strategy Manager
+
+class PrefetchingManager {
+    static let shared = PrefetchingManager()
+    
+    private let prefetchQueue = DispatchQueue(label: "PrefetchQueue", qos: .utility)
+    private var prefetchingTasks: [String: Swift.Task<Void, Never>] = [:]
+    
+    private init() {}
+    
+    func prefetchTasksForCategory(_ category: TaskCategory) {
+        let key = "category_\(category.objectID)"
+        
+        // Cancel existing prefetch task for this category
+        prefetchingTasks[key]?.cancel()
+        
+        prefetchingTasks[key] = Swift.Task {
+            await performCategoryPrefetch(category)
+        }
+    }
+    
+    func prefetchRelatedTasks(for task: Task) {
+        let key = "task_\(task.objectID)"
+        
+        prefetchingTasks[key]?.cancel()
+        
+        prefetchingTasks[key] = Swift.Task {
+            await performTaskPrefetch(task)
+        }
+    }
+    
+    private func performCategoryPrefetch(_ category: TaskCategory) async {
+        await PerformanceOptimizedCoreDataStack.shared.backgroundContext.perform {
+            let request: NSFetchRequest<Task> = Task.fetchRequest()
+            request.predicate = NSPredicate(format: "category == %@", category)
+            request.fetchLimit = 20
+            request.relationshipKeyPathsForPrefetching = ["subtasks", "parentTask"]
+            
+            do {
+                let tasks = try PerformanceOptimizedCoreDataStack.shared.backgroundContext.fetch(request)
+                tasks.forEach { TaskCacheManager.shared.cacheTask($0) }
+            } catch {
+                print("Prefetch error: \(error)")
+            }
+        }
+    }
+    
+    private func performTaskPrefetch(_ task: Task) async {
+        await PerformanceOptimizedCoreDataStack.shared.backgroundContext.perform {
+            // Prefetch subtasks
+            if let subtasks = task.subtasks as? Set<Task> {
+                subtasks.forEach { TaskCacheManager.shared.cacheTask($0) }
+            }
+            
+            // Prefetch parent task
+            if let parentTask = task.parentTask {
+                TaskCacheManager.shared.cacheTask(parentTask)
+            }
+            
+            // Prefetch category
+            if let category = task.category {
+                TaskCacheManager.shared.cacheCategory(category)
+            }
+        }
+    }
+    
+    func cancelAllPrefetching() {
+        prefetchingTasks.values.forEach { $0.cancel() }
+        prefetchingTasks.removeAll()
+    }
+}
+
+// MARK: - Network Optimization Manager
+
+class NetworkOptimizationManager: ObservableObject {
+    static let shared = NetworkOptimizationManager()
+    
+    private let networkMonitor = NWPathMonitor()
+    private let networkQueue = DispatchQueue(label: "NetworkMonitor")
+    
+    @Published var networkStatus: NetworkStatus = .unknown
+    @Published var isLowDataMode = false
+    
+    private var syncOperationQueue: OperationQueue
+    
+    private init() {
+        syncOperationQueue = OperationQueue()
+        syncOperationQueue.maxConcurrentOperationCount = 1
+        syncOperationQueue.qualityOfService = .utility
+        
+        setupNetworkMonitoring()
+    }
+    
+    private func setupNetworkMonitoring() {
+        networkMonitor.pathUpdateHandler = { [weak self] path in
+            DispatchQueue.main.async {
+                self?.updateNetworkStatus(path)
+            }
+        }
+        networkMonitor.start(queue: networkQueue)
+    }
+    
+    private func updateNetworkStatus(_ path: NWPath) {
+        if path.status == .satisfied {
+            if path.isExpensive {
+                networkStatus = .cellular
+            } else {
+                networkStatus = .wifi
+            }
+            isLowDataMode = path.isConstrained
+        } else {
+            networkStatus = .offline
+        }
+        
+        optimizeForNetworkConditions()
+    }
+    
+    private func optimizeForNetworkConditions() {
+        switch networkStatus {
+        case .offline:
+            // Pause sync operations
+            syncOperationQueue.isSuspended = true
+            
+        case .cellular:
+            // Reduce sync frequency on cellular
+            syncOperationQueue.maxConcurrentOperationCount = 1
+            
+        case .wifi:
+            // Full sync on WiFi
+            syncOperationQueue.isSuspended = false
+            syncOperationQueue.maxConcurrentOperationCount = 3
+            
+        case .unknown:
+            // Conservative approach
+            syncOperationQueue.maxConcurrentOperationCount = 1
+        }
+    }
+    
+    func scheduleSync(priority: Operation.QueuePriority = .normal) {
+        let syncOperation = CloudKitSyncOperation()
+        syncOperation.queuePriority = priority
+        syncOperationQueue.addOperation(syncOperation)
+    }
+    
+    func optimizeURLSession() -> URLSessionConfiguration {
+        let config = URLSessionConfiguration.default
+        
+        switch networkStatus {
+        case .cellular, .unknown:
+            config.allowsCellularAccess = true
+            config.timeoutIntervalForRequest = 30
+            config.timeoutIntervalForResource = 60
+            
+        case .wifi:
+            config.timeoutIntervalForRequest = 15
+            config.timeoutIntervalForResource = 30
+            
+        case .offline:
+            config.allowsCellularAccess = false
+        }
+        
+        return config
+    }
+}
+
+enum NetworkStatus {
+    case wifi
+    case cellular
+    case offline
+    case unknown
+}
+
+// MARK: - CloudKit Sync Operation
+
+class CloudKitSyncOperation: Operation, @unchecked Sendable {
+    override func main() {
+        guard !isCancelled else { return }
+        
+        let semaphore = DispatchSemaphore(value: 0)
+        
+        Swift.Task {
+            await performSync()
+            semaphore.signal()
+        }
+        
+        semaphore.wait()
+    }
+    
+    private func performSync() async {
+        // Implement CloudKit sync logic here
+        await PerformanceOptimizedCoreDataStack.shared.saveInBackground()
+    }
+}
+
+// MARK: - Low Memory Warning Handler
+
+class LowMemoryHandler {
+    static let shared = LowMemoryHandler()
+    
+    private var memoryPressureSource: DispatchSourceMemoryPressure?
+    
+    private init() {
+        setupMemoryPressureMonitoring()
+    }
+    
+    private func setupMemoryPressureMonitoring() {
+        memoryPressureSource = DispatchSource.makeMemoryPressureSource(
+            eventMask: [.warning, .critical],
+            queue: DispatchQueue.global(qos: .utility)
+        )
+        
+        memoryPressureSource?.setEventHandler { [weak self] in
+            self?.handleMemoryPressure()
+        }
+        
+        memoryPressureSource?.resume()
+    }
+    
+    private func handleMemoryPressure() {
+        DispatchQueue.main.async {
+            // Clear all caches
+            ImageCacheManager.shared.clearCache()
+            TaskCacheManager.shared.clearCache()
+            
+            // Clear URL cache
+            URLCache.shared.removeAllCachedResponses()
+            
+            // Refresh Core Data contexts
+            PerformanceOptimizedCoreDataStack.shared.persistentContainer.viewContext.refreshAllObjects()
+            
+            // Cancel prefetching operations
+            PrefetchingManager.shared.cancelAllPrefetching()
+            
+            // Notify analytics
+            PerformanceAnalytics.shared.metrics.memoryWarningCount += 1
+        }
+    }
+}
+
+// MARK: - Battery Optimization Manager
+
+class BatteryOptimizationManager: ObservableObject {
+    static let shared = BatteryOptimizationManager()
+    
+    @Published var isLowPowerModeEnabled = false
+    @Published var batteryLevel: Float = 1.0
+    
+    private var batteryLevelObserver: NSObjectProtocol?
+    private var lowPowerModeObserver: NSObjectProtocol?
+    
+    private init() {
+        setupBatteryMonitoring()
+    }
+    
+    private func setupBatteryMonitoring() {
+        UIDevice.current.isBatteryMonitoringEnabled = true
+        
+        batteryLevelObserver = NotificationCenter.default.addObserver(
+            forName: UIDevice.batteryLevelDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.updateBatteryLevel()
+        }
+        
+        lowPowerModeObserver = NotificationCenter.default.addObserver(
+            forName: .NSProcessInfoPowerStateDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.updatePowerMode()
+        }
+        
+        updateBatteryLevel()
+        updatePowerMode()
+    }
+    
+    private func updateBatteryLevel() {
+        batteryLevel = UIDevice.current.batteryLevel
+        optimizeForBatteryLevel()
+    }
+    
+    private func updatePowerMode() {
+        isLowPowerModeEnabled = ProcessInfo.processInfo.isLowPowerModeEnabled
+        optimizeForPowerMode()
+    }
+    
+    private func optimizeForBatteryLevel() {
+        if batteryLevel < 0.2 { // Less than 20%
+            // Reduce background activity
+            NetworkOptimizationManager.shared.syncOperationQueue.isSuspended = true
+            
+            // Stop FPS monitoring
+            PerformanceAnalytics.shared.stopFPSMonitoring()
+            
+            // Reduce animation duration
+            UIView.setAnimationsEnabled(false)
+        } else {
+            // Resume normal operations
+            NetworkOptimizationManager.shared.syncOperationQueue.isSuspended = false
+            UIView.setAnimationsEnabled(true)
+        }
+    }
+    
+    private func optimizeForPowerMode() {
+        if isLowPowerModeEnabled {
+            // Aggressive battery optimization
+            NetworkOptimizationManager.shared.syncOperationQueue.maxConcurrentOperationCount = 1
+            
+            // Clear caches more frequently
+            Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in
+                ImageCacheManager.shared.clearCache()
+            }
+        }
+    }
+    
+    deinit {
+        if let observer = batteryLevelObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        if let observer = lowPowerModeObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+}
+
+// MARK: - Background App Refresh Handler
+
+class BackgroundAppRefreshHandler {
+    static let shared = BackgroundAppRefreshHandler()
+    
+    private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
+    
+    private init() {
+        setupBackgroundHandling()
+    }
+    
+    private func setupBackgroundHandling() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appDidEnterBackground),
+            name: UIApplication.didEnterBackgroundNotification,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appWillEnterForeground),
+            name: UIApplication.willEnterForegroundNotification,
+            object: nil
+        )
+    }
+    
+    @objc private func appDidEnterBackground() {
+        backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "DataCleanup") {
+            self.endBackgroundTask()
+        }
+        
+        Swift.Task {
+            // Perform cleanup operations
+            await performBackgroundCleanup()
+            self.endBackgroundTask()
+        }
+    }
+    
+    @objc private func appWillEnterForeground() {
+        endBackgroundTask()
+        
+        // Resume operations
+        PerformanceAnalytics.shared.startFPSMonitoring()
+        
+        // Prefetch likely needed data
+        Swift.Task {
+            await prefetchForForegroundUse()
+        }
+    }
+    
+    private func performBackgroundCleanup() async {
+        // Save any pending changes
+        await PerformanceOptimizedCoreDataStack.shared.saveInBackground()
+        
+        // Clear caches
+        ImageCacheManager.shared.clearCache()
+        
+        // Cancel unnecessary operations
+        PrefetchingManager.shared.cancelAllPrefetching()
+    }
+    
+    private func prefetchForForegroundUse() async {
+        // Prefetch recently used tasks
+        let repository = PaginatedTaskRepository()
+        await repository.loadInitialTasks()
+    }
+    
+    private func endBackgroundTask() {
+        if backgroundTaskID != .invalid {
+            UIApplication.shared.endBackgroundTask(backgroundTaskID)
+            backgroundTaskID = .invalid
+        }
+    }
+}

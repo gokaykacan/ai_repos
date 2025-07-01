@@ -1,0 +1,422 @@
+import SwiftUI
+import CoreData
+import Combine
+
+struct OptimizedTaskListView: View {
+    @StateObject private var taskRepository = PaginatedTaskRepository()
+    @StateObject private var imageCache = ImageCacheManager()
+    @Environment(\.managedObjectContext) private var viewContext
+    
+    @State private var searchText = ""
+    @State private var selectedCategory: TaskCategory?
+    @State private var showingAddTask = false
+    @State private var selectedTask: Task?
+    @State private var isRefreshing = false
+    
+    @AppStorage("showCompletedTasks") private var showCompletedTasks = true
+    @AppStorage("tasksPerPage") private var tasksPerPage = 50
+    
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \TaskCategory.name, ascending: true)],
+        animation: .default)
+    private var categories: FetchedResults<TaskCategory>
+    
+    private let refreshThreshold = 10 // Load more when this many items from the end
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                categoryFilterSection
+                
+                OptimizedList(
+                    tasks: taskRepository.tasks,
+                    isLoading: taskRepository.isLoading,
+                    hasMorePages: taskRepository.hasMorePages,
+                    onTaskTap: { task in selectedTask = task },
+                    onLoadMore: loadMoreTasks,
+                    onRefresh: refreshTasks
+                )
+            }
+            .navigationTitle("Tasks")
+            .searchable(text: $searchText, prompt: "Search tasks...")
+            .onChange(of: searchText) { _ in
+                performSearch()
+            }
+            .onChange(of: selectedCategory) { _ in
+                refreshTasks()
+            }
+            .onChange(of: showCompletedTasks) { _ in
+                refreshTasks()
+            }
+            .sheet(isPresented: $showingAddTask) {
+                TaskDetailView()
+            }
+            .sheet(item: $selectedTask) { task in
+                TaskDetailView(task: task)
+            }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { showingAddTask = true }) {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
+            .task {
+                await loadInitialTasks()
+            }
+        }
+    }
+    
+    private var categoryFilterSection: some View {
+        Group {
+            if !categories.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Category")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                    }
+                    
+                    Picker("Category", selection: $selectedCategory) {
+                        Text("All Categories").tag(nil as TaskCategory?)
+                        
+                        ForEach(categories, id: \.self) { category in
+                            HStack {
+                                OptimizedCategoryIcon(
+                                    colorHex: category.colorHex ?? "#007AFF",
+                                    icon: category.icon ?? "folder",
+                                    size: 12
+                                )
+                                Text(category.name ?? "Unnamed")
+                            }
+                            .tag(category as TaskCategory?)
+                        }
+                    }
+                    .pickerStyle(MenuPickerStyle())
+                }
+                .padding(.horizontal)
+                .padding(.top, 8)
+                
+                Divider()
+            }
+        }
+    }
+    
+    private func loadInitialTasks() async {
+        let predicate = buildPredicate()
+        let sortDescriptors = buildSortDescriptors()
+        
+        await taskRepository.loadInitialTasks(
+            predicate: predicate,
+            sortDescriptors: sortDescriptors
+        )
+    }
+    
+    private func loadMoreTasks() {
+        Swift.Task {
+            let predicate = buildPredicate()
+            let sortDescriptors = buildSortDescriptors()
+            
+            await taskRepository.loadNextPage(
+                predicate: predicate,
+                sortDescriptors: sortDescriptors
+            )
+        }
+    }
+    
+    private func refreshTasks() {
+        Swift.Task {
+            await loadInitialTasks()
+        }
+    }
+    
+    private func performSearch() {
+        Swift.Task {
+            if searchText.isEmpty {
+                await loadInitialTasks()
+            } else {
+                let searchResults = await taskRepository.searchTasks(query: searchText)
+                await MainActor.run {
+                    taskRepository.tasks = searchResults
+                }
+            }
+        }
+    }
+    
+    private func buildPredicate() -> NSPredicate? {
+        var predicates: [NSPredicate] = []
+        
+        // Filter by completion status
+        if !showCompletedTasks {
+            predicates.append(NSPredicate(format: "isCompleted == NO"))
+        }
+        
+        // Filter by category
+        if let selectedCategory = selectedCategory {
+            predicates.append(NSPredicate(format: "category == %@", selectedCategory))
+        }
+        
+        // Filter by search text
+        if !searchText.isEmpty {
+            predicates.append(NSPredicate(
+                format: "title CONTAINS[cd] %@ OR notes CONTAINS[cd] %@",
+                searchText, searchText
+            ))
+        }
+        
+        return predicates.isEmpty ? nil : NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+    }
+    
+    private func buildSortDescriptors() -> [NSSortDescriptor] {
+        return [
+            NSSortDescriptor(keyPath: \Task.isCompleted, ascending: true),
+            NSSortDescriptor(keyPath: \Task.priority, ascending: false),
+            NSSortDescriptor(keyPath: \Task.createdAt, ascending: false)
+        ]
+    }
+}
+
+// MARK: - Optimized List Component
+
+struct OptimizedList: View {
+    let tasks: [Task]
+    let isLoading: Bool
+    let hasMorePages: Bool
+    let onTaskTap: (Task) -> Void
+    let onLoadMore: () -> Void
+    let onRefresh: () -> Void
+    
+    var body: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(Array(tasks.enumerated()), id: \.element.objectID) { index, task in
+                    OptimizedTaskRowView(
+                        task: task,
+                        onTap: { onTaskTap(task) }
+                    )
+                    .onAppear {
+                        // Load more when near the end
+                        if index >= tasks.count - 10 && hasMorePages && !isLoading {
+                            onLoadMore()
+                        }
+                    }
+                    
+                    if index < tasks.count - 1 {
+                        Divider()
+                            .padding(.leading, 60)
+                    }
+                }
+                
+                if isLoading {
+                    ProgressView()
+                        .frame(height: 60)
+                }
+                
+                if !hasMorePages && !tasks.isEmpty {
+                    Text("No more tasks")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .frame(height: 60)
+                }
+            }
+        }
+        .refreshable {
+            onRefresh()
+        }
+    }
+}
+
+// MARK: - Optimized Task Row
+
+struct OptimizedTaskRowView: View {
+    @ObservedObject var task: Task
+    let onTap: () -> Void
+    
+    @Environment(\.managedObjectContext) private var viewContext
+    @State private var isUpdating = false
+    
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                OptimizedCheckbox(
+                    isChecked: task.isCompleted,
+                    onToggle: toggleCompletion
+                )
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(task.title ?? "Untitled Task")
+                            .font(.body)
+                            .fontWeight(.medium)
+                            .foregroundColor(task.isCompleted ? .secondary : .primary)
+                            .strikethrough(task.isCompleted)
+                            .lineLimit(2)
+                        
+                        Spacer()
+                        
+                        OptimizedPriorityIndicator(priority: task.priorityEnum)
+                    }
+                    
+                    HStack {
+                        if let category = task.category {
+                            OptimizedCategoryBadge(category: category)
+                        }
+                        
+                        Spacer()
+                        
+                        if let dueDate = task.dueDate {
+                            OptimizedDueDateLabel(dueDate: dueDate, isCompleted: task.isCompleted)
+                        }
+                    }
+                    
+                    if let notes = task.notes, !notes.isEmpty {
+                        Text(notes)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .opacity(isUpdating ? 0.6 : 1.0)
+        .animation(.easeInOut(duration: 0.2), value: isUpdating)
+    }
+    
+    private func toggleCompletion() {
+        guard !isUpdating else { return }
+        
+        isUpdating = true
+        
+        Swift.Task {
+            let repository = PaginatedTaskRepository()
+            await repository.updateTask(task, changes: [
+                "isCompleted": !task.isCompleted,
+                "updatedAt": Date()
+            ])
+            
+            await MainActor.run {
+                task.isCompleted.toggle()
+                task.updatedAt = Date()
+                isUpdating = false
+            }
+        }
+    }
+}
+
+// MARK: - Optimized UI Components
+
+struct OptimizedCheckbox: View {
+    let isChecked: Bool
+    let onToggle: () -> Void
+    
+    var body: some View {
+        Button(action: onToggle) {
+            Image(systemName: isChecked ? "checkmark.circle.fill" : "circle")
+                .font(.title2)
+                .foregroundColor(isChecked ? .green : .gray)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .frame(width: 24, height: 24)
+    }
+}
+
+struct OptimizedPriorityIndicator: View {
+    let priority: TaskPriority
+    
+    var body: some View {
+        Image(systemName: priority.systemImage)
+            .font(.caption)
+            .foregroundColor(priority.color)
+            .frame(width: 16, height: 16)
+    }
+}
+
+struct OptimizedCategoryIcon: View {
+    let colorHex: String
+    let icon: String
+    let size: CGFloat
+    
+    var body: some View {
+        Circle()
+            .fill(Color(hex: colorHex))
+            .frame(width: size, height: size)
+            .overlay(
+                Image(systemName: icon)
+                    .font(.system(size: size * 0.6))
+                    .foregroundColor(.white)
+            )
+    }
+}
+
+struct OptimizedCategoryBadge: View {
+    @ObservedObject var category: TaskCategory
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            OptimizedCategoryIcon(
+                colorHex: category.colorHex ?? "#007AFF",
+                icon: category.icon ?? "folder",
+                size: 8
+            )
+            Text(category.name ?? "")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+}
+
+struct OptimizedDueDateLabel: View {
+    let dueDate: Date
+    let isCompleted: Bool
+    
+    var body: some View {
+        Text(formatDueDate(dueDate))
+            .font(.caption)
+            .foregroundColor(dueDate < Date() && !isCompleted ? .red : .secondary)
+    }
+    
+    private func formatDueDate(_ date: Date) -> String {
+        if Calendar.current.isDateInToday(date) {
+            return "Today"
+        } else if Calendar.current.isDateInTomorrow(date) {
+            return "Tomorrow"
+        } else if Calendar.current.isDateInYesterday(date) {
+            return "Yesterday"
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .short
+            return formatter.string(from: date)
+        }
+    }
+}
+
+// MARK: - Image Cache Manager
+
+class ImageCacheManager: ObservableObject {
+    static let shared = ImageCacheManager()
+    
+    private var cache: [String: UIImage] = [:]
+    private let cacheQueue = DispatchQueue(label: "ImageCacheQueue", attributes: .concurrent)
+    
+    func getImage(for key: String) -> UIImage? {
+        return cacheQueue.sync {
+            return cache[key]
+        }
+    }
+    
+    func setImage(_ image: UIImage, for key: String) {
+        cacheQueue.async(flags: .barrier) {
+            self.cache[key] = image
+        }
+    }
+    
+    func clearCache() {
+        cacheQueue.async(flags: .barrier) {
+            self.cache.removeAll()
+        }
+    }
+}

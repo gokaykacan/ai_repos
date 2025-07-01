@@ -28,6 +28,7 @@
 "action.incomplete" = "Tamamlanmadı";
 "action.postpone" = "Ertele";
 "action.add" = "Ekle";
+"action.view" = "Görüntüle";
 
 // MARK: - Task List
 "task.no_tasks" = "Görev bulunamadı. Yeni görev eklemek için '+' düğmesine dokunun!";
@@ -240,3 +241,49 @@
 "performance.force_memory_cleanup" = "Bellek Temizliğini Zorla";
 "performance.generate_report" = "Performans Raporu Oluştur";
 "performance.settings" = "Performans Ayarları";
+
+// MARK: - Missing Task Detail Strings
+"task.title_section" = "Başlık";
+"task.notes_section" = "Notlar";
+"task.set_due_date" = "Bitiş tarihi belirle";
+"task.select_priority" = "Öncelik Seç";
+"task.recurring_description" = "Bu görevi tamamladığınızda otomatik olarak yeni bir görev oluşturulacaktır.";
+"personal.category_name" = "Kişisel";
+
+// MARK: - Missing Category Detail Strings
+"category.name_section" = "İsim";
+"category.statistics" = "İstatistikler";
+"category.create_first" = "İlk Kategoriyi Oluştur";
+
+// MARK: - Missing Date Picker Strings
+"date.placeholder_example" = "örn., 27/06/2025 14:30";
+"date.select_due_date" = "Bitiş Tarihi Seç";
+
+// MARK: - Missing Action Strings
+"action.done" = "Tamam";
+"action.delete_all_tasks" = "Tüm Görevleri Sil";
+"action.delete_category" = "Kategoriyi Sil";
+"action.delete_completed" = "Tamamlananları Sil";
+
+// MARK: - Missing Alert Strings for Categories
+"alert.delete_completed_title" = "Tamamlanan Görevleri Sil";
+"alert.delete_completed_message" = "\"%@\" kategorisindeki tüm tamamlanan görevleri silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.";
+"alert.delete_all_tasks_title" = "Tüm Görevleri Sil";
+"alert.delete_all_tasks_message" = "\"%@\" kategorisindeki tüm görevleri silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.";
+
+// MARK: - Missing Recurrence Descriptions
+"recurrence.none_desc" = "Tekrarlanmaz";
+"recurrence.daily_desc" = "Her gün tekrarlanır";
+"recurrence.weekly_desc" = "Her hafta tekrarlanır";
+"recurrence.monthly_desc" = "Her ay tekrarlanır";
+"recurrence.yearly_desc" = "Her yıl tekrarlanır";
+
+// MARK: - Task Status and State
+"task.untitled_subtask" = "Başlıksız Alt Görev";
+"task.task_count" = "%d görev";
+"task.tasks_count" = "%d görev";
+
+// MARK: - Empty States
+"empty.no_tasks_category" = "Bu kategoride henüz görev yok";
+"empty.add_first_task" = "Başlamak için ilk görevinizi ekleyin";
+"empty.no_completed" = "Tamamlanmış görev bulunamadı";

@@ -15,12 +15,12 @@ struct ProductivityChartView: View {
     var body: some View {
         NavigationView {
             VStack {
-                Text("Completed Tasks Over Time")
+                Text("insights.chart_title".localized)
                     .font(.headline)
                     .padding()
 
                 if dailyCompletions.isEmpty {
-                    ContentUnavailableView("No completed tasks yet", systemImage: "chart.bar.fill")
+                    ContentUnavailableView("insights.no_data".localized, systemImage: "chart.bar.fill")
                 } else {
                     Chart {
                         ForEach(dailyCompletions) { data in
@@ -47,7 +47,7 @@ struct ProductivityChartView: View {
                 
                 Spacer()
             }
-            .navigationTitle("Insights")
+            .navigationTitle("nav.insights".localized)
             .onAppear(perform: loadDailyCompletions)
         }
     }
