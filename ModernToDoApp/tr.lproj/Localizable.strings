@@ -1,0 +1,242 @@
+/* 
+  Localizable.strings
+  ModernToDoApp - Turkish
+*/
+
+// MARK: - Tab Bar
+"tab.tasks" = "Görevler";
+"tab.categories" = "Kategoriler";
+"tab.settings" = "Ayarlar";
+"tab.insights" = "İstatistikler";
+
+// MARK: - Navigation Titles
+"nav.tasks" = "Görevler";
+"nav.categories" = "Kategoriler";
+"nav.settings" = "Ayarlar";
+"nav.insights" = "İstatistikler";
+"nav.new_task" = "Yeni Görev";
+"nav.edit_task" = "Görevi Düzenle";
+"nav.new_category" = "Yeni Kategori";
+"nav.edit_category" = "Kategoriyi Düzenle";
+
+// MARK: - General Actions
+"action.cancel" = "İptal";
+"action.save" = "Kaydet";
+"action.delete" = "Sil";
+"action.edit" = "Düzenle";
+"action.complete" = "Tamamla";
+"action.incomplete" = "Tamamlanmadı";
+"action.postpone" = "Ertele";
+"action.add" = "Ekle";
+
+// MARK: - Task List
+"task.no_tasks" = "Görev bulunamadı. Yeni görev eklemek için '+' düğmesine dokunun!";
+"task.no_search_results" = "Aramanızla eşleşen görev bulunamadı.";
+"task.search_placeholder" = "Görev ara...";
+"task.filter" = "Filtrele";
+"task.all_categories" = "Tüm Kategoriler";
+
+// MARK: - Task Sections
+"section.overdue" = "Gecikmiş";
+"section.today" = "Bugün";
+"section.tomorrow" = "Yarın";
+"section.this_week" = "Bu Hafta";
+"section.upcoming" = "Yaklaşan";
+"section.completed" = "Tamamlanan";
+"section.no_due_date" = "Tarihi Yok";
+
+// MARK: - Task Detail
+"task.title_placeholder" = "Görev başlığı";
+"task.notes_placeholder" = "Not ekle (isteğe bağlı)";
+"task.priority" = "Öncelik";
+"task.due_date" = "Bitiş Tarihi";
+"task.category" = "Kategori";
+"task.repeat" = "Tekrarla";
+"task.recurring_requires_date" = "Tekrarlanan görevler için bitiş tarihi gereklidir";
+"task.next_occurrence" = "Sonraki: %@";
+
+// MARK: - Priority Levels
+"priority.high" = "Yüksek";
+"priority.medium" = "Orta";
+"priority.low" = "Düşük";
+
+// MARK: - Recurrence Types
+"recurrence.none" = "Yok";
+"recurrence.daily" = "Günlük";
+"recurrence.weekly" = "Haftalık";
+"recurrence.monthly" = "Aylık";
+"recurrence.yearly" = "Yıllık";
+"recurrence.daily_desc" = "Her gün tekrarlanır";
+"recurrence.weekly_desc" = "Her hafta tekrarlanır";
+"recurrence.monthly_desc" = "Her ay tekrarlanır";
+"recurrence.yearly_desc" = "Her yıl tekrarlanır";
+"recurrence.title" = "Tekrar";
+
+// MARK: - Category List
+"category.no_categories" = "Kategori bulunamadı. Yeni kategori eklemek için '+' düğmesine dokunun!";
+"category.search_placeholder" = "Kategori ara...";
+"category.unnamed" = "Adsız";
+
+// MARK: - Category Detail
+"category.name_placeholder" = "Kategori adı";
+"category.color" = "Renk";
+"category.icon" = "İkon";
+
+// MARK: - Settings
+"settings.appearance" = "Görünüm";
+"settings.dark_mode" = "Karanlık Mod";
+"settings.dark_mode_footer" = "İlk açılışta sistem görünümüne otomatik olarak uyar.";
+"settings.language" = "Dil";
+"settings.language_footer" = "Değişiklikler hemen uygulanır.";
+"settings.notifications" = "Bildirimler";
+"settings.enable_notifications" = "Bildirimleri Etkinleştir";
+"settings.tasks" = "Görevler";
+"settings.show_completed" = "Tamamlanan Görevleri Göster";
+"settings.data" = "Veri";
+"settings.clear_tasks" = "Tüm Görevleri Temizle";
+"settings.clear_data" = "Tüm Verileri Temizle";
+"settings.about" = "Hakkında";
+"settings.version" = "Sürüm";
+
+// MARK: - Language Options
+"language.english" = "English";
+"language.turkish" = "Türkçe";
+
+// MARK: - Alerts
+"alert.delete_task_title" = "Görevi Sil";
+"alert.delete_task_message" = "\"%@\" görevini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.";
+"alert.delete_category_title" = "Kategoriyi Sil";
+"alert.delete_category_message" = "\"%@\" kategorisini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.";
+"alert.clear_tasks_title" = "Tüm Görevleri Temizle";
+"alert.clear_tasks_message" = "Tüm görevleri silmek istediğinizden emin misiniz? Kategoriler kalacaktır.";
+"alert.clear_data_title" = "Tüm Verileri Temizle";
+"alert.clear_data_message" = "Tüm görev ve kategorileri silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.";
+
+// MARK: - Floating Action Button
+"fab.add_task" = "Görev Ekle";
+"fab.add_category" = "Kategori Ekle";
+
+// MARK: - Date Formatting
+"date.today" = "Bugün";
+"date.tomorrow" = "Yarın";
+"date.yesterday" = "Dün";
+
+// MARK: - Task Card
+"task.created" = "Oluşturuldu";
+"task.updated" = "Güncellendi";
+"task.due" = "Bitiş";
+
+// MARK: - Additional General Actions
+"action.sort" = "Sırala";
+"action.done" = "Tamam";
+"action.close" = "Kapat";
+"action.edit_category" = "Kategoriyi Düzenle";
+"action.postpone_task" = "Görevi Ertele";
+
+// MARK: - Extended Task Details
+"task.title_section" = "Başlık";
+"task.notes_section" = "Notlar";
+"task.recurrence_section" = "Tekrar";
+"task.set_due_date" = "Bitiş tarihi belirle";
+"task.select_priority" = "Öncelik Seç";
+"task.recurring_description" = "Bu görevi tamamladığınızda otomatik olarak yeni bir görev oluşturulacaktır.";
+"task.untitled" = "Başlıksız Görev";
+"task.progress_completed" = "% tamamlandı";
+"task.subtasks" = "alt görevler";
+"task.status" = "Durum";
+"task.status_completed" = "Tamamlandı";
+"task.status_pending" = "Beklemede";
+"task.description" = "Açıklama";
+"task.subtasks_section" = "Alt Görevler";
+"task.completed_count" = "tamamlandı";
+"task.singular" = "görev";
+"task.plural" = "görevler";
+
+// MARK: - Navigation Titles Extended
+"nav.task_details" = "Görev Detayları";
+"nav.category_details" = "Kategori Detayları";
+
+// MARK: - Extended Category Details
+"category.name_section" = "İsim";
+"category.statistics" = "İstatistikler";
+"category.create_first" = "İlk Kategoriyi Oluştur";
+
+// MARK: - Statistics and Metrics
+"stats.tasks" = "Görevler";
+"stats.total" = "toplam";
+"stats.pending" = "beklemede";
+"stats.done" = "tamamlandı";
+"stats.created" = "Oluşturuldu";
+"stats.completed" = "Tamamlandı";
+
+// MARK: - Sort Options
+"sort.alphabetical" = "A → Z";
+"sort.newest_first" = "En Yeniler Önce";
+
+// MARK: - Options
+"option.none" = "Yok";
+
+// MARK: - Date Formatting Extended
+"date.placeholder_example" = "örn., 27/06/2025 14:30";
+"date.select_due_date" = "Bitiş Tarihi Seç";
+
+// MARK: - Insights and Charts
+"insights.chart_title" = "Zaman İçinde Tamamlanan Görevler";
+"insights.no_data" = "Henüz tamamlanmış görev yok";
+
+// MARK: - Notifications
+"notification.task_due_title" = "Görev Süresi Doldu: %@";
+"notification.task_due_body" = "Görevinizin süresi şimdi doldu";
+"notification.task_due_prefix" = "Görev Süresi Doldu:";
+
+// MARK: - Extended Alerts
+"alert.delete_all_tasks_title" = "Tüm Görevleri Sil";
+"alert.delete_all_tasks_message" = "\"%@\" kategorisindeki tüm görevleri silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.";
+"alert.language_changed_title" = "Dil Değiştirildi";
+"alert.language_changed_message" = "Dil değişikliklerinin tamamen uygulanması için lütfen uygulamayı yeniden başlatın.";
+
+// MARK: - Restart Actions
+"action.restart_now" = "Şimdi Yeniden Başlat";
+"action.restart_later" = "Daha Sonra";
+
+// MARK: - Detail View Content
+"detail.all_tasks" = "Tüm Görevler";
+"detail.completed_tasks" = "Tamamlanan Görevler";
+"detail.pending_tasks" = "Bekleyen Görevler";
+"detail.no_tasks_yet" = "Henüz Görev Yok";
+"detail.no_completed_tasks" = "Tamamlanmış Görev Yok";
+"detail.no_pending_tasks" = "Bekleyen Görev Yok";
+"detail.tasks_will_appear_here" = "Bu kategoriye eklenen görevler burada görünecek";
+"detail.complete_tasks_to_see" = "Burada görmek için bazı görevleri tamamlayın";
+"detail.all_tasks_completed" = "Bu kategorideki tüm görevler tamamlandı!";
+
+// MARK: - Performance Settings
+"performance.ui_performance" = "Arayüz Performansı";
+"performance.use_optimized_list" = "Optimize Edilmiş Görev Listesi Kullan";
+"performance.enable_fps_monitoring" = "FPS İzlemeyi Etkinleştir";
+"performance.tasks_per_page" = "Sayfa Başına Görev";
+"performance.data_management" = "Veri Yönetimi";
+"performance.enable_prefetching" = "Ön Yüklemeyi Etkinleştir";
+"performance.enable_image_caching" = "Resim Önbelleğini Etkinleştir";
+"performance.clear_all_caches" = "Tüm Önbellekleri Temizle";
+"performance.battery_optimization" = "Pil Optimizasyonu";
+"performance.enable_battery_opt" = "Pil Optimizasyonunu Etkinleştir";
+"performance.battery_level" = "Pil Seviyesi";
+"performance.low_power_mode" = "Düşük Güç Modu";
+"performance.enabled" = "Etkin";
+"performance.disabled" = "Devre Dışı";
+"performance.network_status" = "Ağ Durumu";
+"performance.connection" = "Bağlantı";
+"performance.low_data_mode" = "Düşük Veri Modu";
+"performance.wifi" = "WiFi";
+"performance.cellular" = "Hücresel";
+"performance.offline" = "Çevrimdışı";
+"performance.unknown" = "Bilinmiyor";
+"performance.current_performance" = "Mevcut Performans";
+"performance.fps" = "FPS";
+"performance.memory_usage" = "Bellek Kullanımı";
+"performance.core_data_operations" = "Core Data İşlemleri";
+"performance.actions" = "Eylemler";
+"performance.force_memory_cleanup" = "Bellek Temizliğini Zorla";
+"performance.generate_report" = "Performans Raporu Oluştur";
+"performance.settings" = "Performans Ayarları";

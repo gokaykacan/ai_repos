@@ -13,6 +13,9 @@ struct ModernToDoAppApp: App {
         // Request notification permissions
         NotificationManager.shared.requestPermission()
         
+        // Initialize language manager (this must be done early)
+        _ = LanguageManager.shared
+        
         // Initialize dark mode based on system appearance on first launch
         initializeDarkModePreference()
     }

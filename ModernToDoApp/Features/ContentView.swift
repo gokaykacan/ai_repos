@@ -2,6 +2,7 @@ import SwiftUI
 import CoreData
 import UserNotifications
 import UIKit
+import Foundation
 
 struct ContentView: View {
     @State private var selectedTab = 0
@@ -11,7 +12,7 @@ struct ContentView: View {
             TaskListView(selectedTab: $selectedTab)
                 .tabItem {
                     Image(systemName: "list.bullet")
-                    Text("Tasks")
+                    Text("tab.tasks".localized)
                 }
                 .tag(0)
                 .transition(.slide)
@@ -19,7 +20,7 @@ struct ContentView: View {
             CategoriesView()
                 .tabItem {
                     Image(systemName: "folder")
-                    Text("Categories")
+                    Text("tab.categories".localized)
                 }
                 .tag(1)
                 .transition(.slide)
@@ -27,7 +28,7 @@ struct ContentView: View {
             SettingsView()
                 .tabItem {
                     Image(systemName: "gear")
-                    Text("Settings")
+                    Text("tab.settings".localized)
                 }
                 .tag(2)
                 .transition(.slide)
@@ -35,7 +36,7 @@ struct ContentView: View {
             ProductivityChartView()
                 .tabItem {
                     Image(systemName: "chart.bar.fill")
-                    Text("Insights")
+                    Text("tab.insights".localized)
                 }
                 .tag(3)
                 .transition(.slide)
@@ -147,19 +148,19 @@ struct TaskListView: View {
         var sections: [TaskSection] = []
 
         if !overdueTasks.isEmpty {
-            sections.append(TaskSection(title: "Overdue", tasks: overdueTasks.sorted { $0.dueDate ?? Date() < $1.dueDate ?? Date() }))
+            sections.append(TaskSection(title: "section.overdue".localized, tasks: overdueTasks.sorted { $0.dueDate ?? Date() < $1.dueDate ?? Date() }))
         }
         if !todayTasks.isEmpty {
-            sections.append(TaskSection(title: "Today", tasks: todayTasks.sorted { $0.dueDate ?? Date() < $1.dueDate ?? Date() }))
+            sections.append(TaskSection(title: "section.today".localized, tasks: todayTasks.sorted { $0.dueDate ?? Date() < $1.dueDate ?? Date() }))
         }
         if !tomorrowTasks.isEmpty {
-            sections.append(TaskSection(title: "Tomorrow", tasks: tomorrowTasks.sorted { $0.dueDate ?? Date() < $1.dueDate ?? Date() }))
+            sections.append(TaskSection(title: "section.tomorrow".localized, tasks: tomorrowTasks.sorted { $0.dueDate ?? Date() < $1.dueDate ?? Date() }))
         }
         if !upcomingTasks.isEmpty {
-            sections.append(TaskSection(title: "Upcoming", tasks: upcomingTasks.sorted { $0.dueDate ?? Date() < $1.dueDate ?? Date() }))
+            sections.append(TaskSection(title: "section.upcoming".localized, tasks: upcomingTasks.sorted { $0.dueDate ?? Date() < $1.dueDate ?? Date() }))
         }
         if !noDueDateTasks.isEmpty {
-            sections.append(TaskSection(title: "No Due Date", tasks: noDueDateTasks.sorted {
+            sections.append(TaskSection(title: "section.no_due_date".localized, tasks: noDueDateTasks.sorted {
                 if $0.priority != $1.priority {
                     return $0.priority > $1.priority
                 } else {
@@ -168,7 +169,7 @@ struct TaskListView: View {
             }))
         }
         if !completedTasks.isEmpty && showCompletedTasks {
-            sections.append(TaskSection(title: "Completed", tasks: completedTasks.sorted { $0.updatedAt ?? Date() > $1.updatedAt ?? Date() }))
+            sections.append(TaskSection(title: "section.completed".localized, tasks: completedTasks.sorted { $0.updatedAt ?? Date() > $1.updatedAt ?? Date() }))
         }
 
         return sections
@@ -182,7 +183,7 @@ struct TaskListView: View {
                 VStack(spacing: 0) {
                     UltraMinimalistSearchBar(
                         text: $searchText,
-                        placeholder: "Search tasks..."
+                        placeholder: "task.search_placeholder".localized
                     )
                     .padding(.horizontal, 20)
                     .padding(.top, 12)
@@ -192,7 +193,7 @@ struct TaskListView: View {
                 // Filter Section (separate from search)
                 if !categories.isEmpty {
                     HStack {
-                        Text("Filter")
+                        Text("task.filter".localized)
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.secondary)
                             .textCase(.uppercase)
@@ -206,7 +207,7 @@ struct TaskListView: View {
                                 HStack {
                                     Image(systemName: "list.bullet")
                                         .foregroundColor(.blue)
-                                    Text("All Categories")
+                                    Text("task.all_categories".localized)
                                     Spacer()
                                     if selectedCategory == nil {
                                         Image(systemName: "checkmark")
@@ -229,7 +230,7 @@ struct TaskListView: View {
                                             .frame(width: 12, height: 12)
                                         Image(systemName: category.icon ?? "folder")
                                             .foregroundColor(Color(hex: category.colorHex ?? "#007AFF"))
-                                        Text(category.name ?? "Unnamed")
+                                        Text(category.name ?? "category.unnamed".localized)
                                         Spacer()
                                         if selectedCategory == category {
                                             Image(systemName: "checkmark")
@@ -250,7 +251,7 @@ struct TaskListView: View {
                                         .foregroundColor(.secondary)
                                 }
                                 
-                                Text(selectedCategory?.name ?? "All Categories")
+                                Text(selectedCategory?.name ?? "task.all_categories".localized)
                                     .font(.system(size: 15, weight: .medium))
                                     .foregroundColor(.primary)
                                     .lineLimit(1)
@@ -282,11 +283,11 @@ struct TaskListView: View {
                 
                 List {
                     if groupedTasks.isEmpty && searchText.isEmpty {
-                        Text("No tasks found. Tap '+' to add a new task!")
+                        Text("task.no_tasks".localized)
                             .foregroundColor(.secondary)
                             .padding()
                     } else if groupedTasks.isEmpty && !searchText.isEmpty {
-                        Text("No tasks found matching your search.")
+                        Text("task.no_search_results".localized)
                             .foregroundColor(.secondary)
                             .padding()
                     } else {
@@ -309,24 +310,24 @@ struct TaskListView: View {
                                         }
                                     )
                                     .swipeActions(edge: .trailing) {
-                                                Button("Delete", role: .destructive) {
+                                                Button("action.delete".localized, role: .destructive) {
                                                     taskToDelete = task
                                                     showingDeleteTaskAlert = true
                                                 }
                                                 
-                                                Button("Edit") {
+                                                Button("action.edit".localized) {
                                                     activeSheet = .edit(task)
                                                 }
                                                 .tint(.blue)
                                                 
-                                                Button("Postpone") {
+                                                Button("action.postpone".localized) {
                                                     let postponeDate = task.dueDate ?? Date()
                                                     activeSheet = .postpone(task, postponeDate)
                                                 }
                                                 .tint(.orange)
                                             }
                                             .swipeActions(edge: .leading) {
-                                                Button(task.isCompleted ? "Incomplete" : "Complete") {
+                                                Button(task.isCompleted ? "action.incomplete".localized : "action.complete".localized) {
                                                     withAnimation {
                                                         let wasCompleted = task.isCompleted
                                                         
@@ -382,7 +383,7 @@ struct TaskListView: View {
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
             }
-            .navigationTitle("Tasks")
+            .navigationTitle("nav.tasks".localized)
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -410,15 +411,15 @@ struct TaskListView: View {
             .sheet(isPresented: $showingAddTask) {
                 TaskDetailView(category: selectedCategory)
             }
-            .alert("Delete Task", isPresented: $showingDeleteTaskAlert) {
-                Button("Cancel", role: .cancel) { }
-                Button("Delete Task", role: .destructive) {
+            .alert("alert.delete_task_title".localized, isPresented: $showingDeleteTaskAlert) {
+                Button("action.cancel".localized, role: .cancel) { }
+                Button("action.delete".localized, role: .destructive) {
                     if let task = taskToDelete {
                         deleteTask(task)
                     }
                 }
             } message: {
-                Text("Are you sure you want to delete \"\(taskToDelete?.title ?? "this task")\"? This action cannot be undone.")
+                Text("alert.delete_task_message".localized(with: taskToDelete?.title ?? "this task"))
             }
         }
         .onAppear {
@@ -557,17 +558,17 @@ struct PostponeTaskView: View {
                 
                 Spacer()
             }
-            .navigationTitle("Postpone Task")
+            .navigationTitle("action.postpone_task".localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
+                    Button("action.cancel".localized) {
                         onDismiss()
                     }
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
+                    Button("action.save".localized) {
                         withAnimation {
                             task.dueDate = newPostponeDate
                             task.updatedAt = Date()
@@ -628,7 +629,7 @@ struct TaskCardView: View {
                             CompactPriorityIndicatorView(priority: task.priorityEnum)
                         }
                         
-                        Text(task.title ?? "Untitled Task")
+                        Text(task.title ?? "task.untitled".localized)
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(task.isCompleted ? .secondary : .primary)
                             .strikethrough(task.isCompleted)
@@ -690,7 +691,7 @@ struct TaskCardView: View {
                             ProgressView(value: task.completionPercentage)
                                 .progressViewStyle(.linear)
                                 .tint(.accentColor)
-                            Text("\(Int(task.completionPercentage * 100))% completed • \(task.completedSubtasks.count)/\(task.subtaskArray.count) subtasks")
+                            Text("\(Int(task.completionPercentage * 100))" + "task.progress_completed".localized + " • \(task.completedSubtasks.count)/\(task.subtaskArray.count) " + "task.subtasks".localized)
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         }
@@ -768,9 +769,9 @@ enum CategorySortOption: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .alphabetical:
-            return "A → Z"
+            return "sort.alphabetical".localized
         case .creationDate:
-            return "Newest First"
+            return "sort.newest_first".localized
         }
     }
     
@@ -835,7 +836,7 @@ struct CategoriesView: View {
                 VStack(spacing: 0) {
                     UltraMinimalistSearchBar(
                         text: $searchText,
-                        placeholder: "Search categories..."
+                        placeholder: "category.search_placeholder".localized
                     )
                     .padding(.horizontal, 20)
                     .padding(.top, 12)
@@ -844,7 +845,7 @@ struct CategoriesView: View {
                 
                 // Sort Section (separate from search)
                 HStack {
-                    Text("Sort")
+                    Text("action.sort".localized)
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.secondary)
                         .textCase(.uppercase)
@@ -944,7 +945,7 @@ struct CategoriesView: View {
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
             }
-            .navigationTitle("Categories")
+            .navigationTitle("nav.categories".localized)
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -1150,7 +1151,7 @@ struct CategoryCardView: View {
                                 Image(systemName: "list.bullet")
                                     .font(.caption2)
                                     .foregroundColor(.secondary)
-                                Text("\(taskCount) total")
+                                Text("\(taskCount) " + "stats.total".localized)
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -1160,7 +1161,7 @@ struct CategoryCardView: View {
                                     Circle()
                                         .fill(Color.orange)
                                         .frame(width: 6, height: 6)
-                                    Text("\(pendingTaskCount) pending")
+                                    Text("\(pendingTaskCount) " + "stats.pending".localized)
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -1171,7 +1172,7 @@ struct CategoryCardView: View {
                                     Circle()
                                         .fill(Color.green)
                                         .frame(width: 6, height: 6)
-                                    Text("\(completedTaskCount) done")
+                                    Text("\(completedTaskCount) " + "stats.done".localized)
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -1231,22 +1232,31 @@ struct SettingsView: View {
     @AppStorage("showCompletedTasks") private var showCompletedTasks = true
     @State private var showingClearDataAlert = false
     @State private var showingClearTasksAlert = false
+    @ObservedObject private var languageManager = LanguageManager.shared
     
     var body: some View {
         NavigationView {
             Form {
                 Section {
-                    Toggle("Dark Mode", isOn: $isDarkMode)
+                    Toggle("settings.dark_mode".localized, isOn: $isDarkMode)
                 } header: {
-                    Text("Appearance")
-                } footer: {
-                    Text("Automatically matches your system appearance on first launch.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    Text("settings.appearance".localized)
                 }
                 
-                Section("Notifications") {
-                    Toggle("Enable Notifications", isOn: $notificationsEnabled)
+                Section {
+                    Picker("settings.language".localized, selection: $languageManager.currentLanguage) {
+                        ForEach(LanguageManager.supportedLanguages) { language in
+                            Text(language.name)
+                                .tag(language.code)
+                        }
+                    }
+                    .pickerStyle(.navigationLink)
+                } header: {
+                    Text("settings.language".localized)
+                }
+                
+                Section("settings.notifications".localized) {
+                    Toggle("settings.enable_notifications".localized, isOn: $notificationsEnabled)
                         .onChange(of: notificationsEnabled) { enabled in
                             if enabled {
                                 NotificationManager.shared.requestPermission()
@@ -1258,48 +1268,48 @@ struct SettingsView: View {
                         }
                 }
                 
-                Section("Tasks") {
-                    Toggle("Show Completed Tasks", isOn: $showCompletedTasks)
+                Section("settings.tasks".localized) {
+                    Toggle("settings.show_completed".localized, isOn: $showCompletedTasks)
                 }
                 
                 
-                Section("Data") {
-                    Button("Clear All Tasks") {
+                Section("settings.data".localized) {
+                    Button("settings.clear_tasks".localized) {
                         showingClearTasksAlert = true
                     }
                     .foregroundColor(.red)
                     
-                    Button("Clear All Data") {
+                    Button("settings.clear_data".localized) {
                         showingClearDataAlert = true
                     }
                     .foregroundColor(.red)
                 }
                 
-                Section("About") {
+                Section("settings.about".localized) {
                     HStack {
-                        Text("Version")
+                        Text("settings.version".localized)
                         Spacer()
                         Text("1.0.0")
                             .foregroundColor(.secondary)
                     }
                 }
             }
-            .navigationTitle("Settings")
-            .alert("Clear All Data", isPresented: $showingClearDataAlert) {
-                Button("Cancel", role: .cancel) { }
-                Button("Delete All", role: .destructive) {
+            .navigationTitle("nav.settings".localized)
+            .alert("alert.clear_data_title".localized, isPresented: $showingClearDataAlert) {
+                Button("action.cancel".localized, role: .cancel) { }
+                Button("action.delete".localized, role: .destructive) {
                     clearAllData()
                 }
             } message: {
-                Text("Are you sure you want to delete all tasks and categories? This action cannot be undone.")
+                Text("alert.clear_data_message".localized)
             }
-            .alert("Clear All Tasks", isPresented: $showingClearTasksAlert) {
-                Button("Cancel", role: .cancel) { }
-                Button("Delete Tasks", role: .destructive) {
+            .alert("alert.clear_tasks_title".localized, isPresented: $showingClearTasksAlert) {
+                Button("action.cancel".localized, role: .cancel) { }
+                Button("action.delete".localized, role: .destructive) {
                     clearAllTasks()
                 }
             } message: {
-                Text("Are you sure you want to delete all tasks? Categories will remain.")
+                Text("alert.clear_tasks_message".localized)
             }
         }
         .dismissKeyboardOnFormTap()
@@ -1394,14 +1404,14 @@ struct SimpleTaskDetailView: View {
                     
                     VStack(alignment: .leading, spacing: 16) {
                         // Priority
-                        DetailRow(title: "Priority", 
+                        DetailRow(title: "task.priority".localized, 
                                 value: "\(task.priorityEnum.title) Priority",
                                 icon: task.priorityEnum.systemImage,
                                 color: task.priorityEnum.color)
                         
                         // Category
                         if let category = task.category {
-                            DetailRow(title: "Category",
+                            DetailRow(title: "task.category".localized,
                                     value: category.name ?? "Unnamed",
                                     icon: category.icon ?? "folder",
                                     color: Color(hex: category.colorHex ?? "#007AFF"))
@@ -1409,21 +1419,21 @@ struct SimpleTaskDetailView: View {
                         
                         // Due Date
                         if let dueDate = task.dueDate {
-                            DetailRow(title: "Due Date",
+                            DetailRow(title: "task.due_date".localized,
                                     value: DateFormatter.taskDate.string(from: dueDate),
                                     icon: "calendar",
                                     color: dueDate < Date() && !task.isCompleted ? .red : .blue)
                         }
                         
                         // Status
-                        DetailRow(title: "Status",
-                                value: task.isCompleted ? "Completed" : "Pending",
+                        DetailRow(title: "task.status".localized,
+                                value: task.isCompleted ? "task.status_completed".localized : "task.status_pending".localized,
                                 icon: task.isCompleted ? "checkmark.circle.fill" : "circle",
                                 color: task.isCompleted ? .green : .orange)
                         
                         // Creation Date
                         if let createdAt = task.createdAt {
-                            DetailRow(title: "Created",
+                            DetailRow(title: "task.created".localized,
                                     value: DateFormatter.taskDate.string(from: createdAt),
                                     icon: "plus.circle",
                                     color: .secondary)
@@ -1486,11 +1496,11 @@ struct SimpleTaskDetailView: View {
                     Spacer()
                 }
             }
-            .navigationTitle("Task Details")
+            .navigationTitle("nav.task_details".localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Close") {
+                    Button("action.close".localized) {
                         let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                         impactFeedback.impactOccurred()
                         dismiss()
@@ -1529,9 +1539,9 @@ struct SimpleCategoryDetailView: View {
         
         var title: String {
             switch self {
-            case .all: return "All Tasks"
-            case .completed: return "Completed Tasks"
-            case .pending: return "Pending Tasks"
+            case .all: return "detail.all_tasks".localized
+            case .completed: return "detail.completed_tasks".localized
+            case .pending: return "detail.pending_tasks".localized
             }
         }
     }
@@ -1577,7 +1587,7 @@ struct SimpleCategoryDetailView: View {
                         GridItem(.flexible())
                     ], spacing: 16) {
                         StatCard(
-                            title: "Total", 
+                            title: "stats.total".localized, 
                             value: "\(categoryTasks.count)", 
                             color: .blue, 
                             icon: "list.bullet",
@@ -1585,7 +1595,7 @@ struct SimpleCategoryDetailView: View {
                             onTap: { selectedFilter = .all }
                         )
                         StatCard(
-                            title: "Completed", 
+                            title: "stats.completed".localized, 
                             value: "\(categoryTasks.filter { $0.isCompleted }.count)", 
                             color: .green, 
                             icon: "checkmark.circle.fill",
@@ -1593,7 +1603,7 @@ struct SimpleCategoryDetailView: View {
                             onTap: { selectedFilter = .completed }
                         )
                         StatCard(
-                            title: "Pending", 
+                            title: "stats.pending".localized, 
                             value: "\(categoryTasks.filter { !$0.isCompleted }.count)", 
                             color: .orange, 
                             icon: "circle",
@@ -1623,7 +1633,7 @@ struct SimpleCategoryDetailView: View {
                                         .foregroundColor(task.isCompleted ? .green : .secondary)
                                     
                                     VStack(alignment: .leading) {
-                                        Text(task.title ?? "Untitled Task")
+                                        Text(task.title ?? "task.untitled".localized)
                                             .font(.body)
                                             .strikethrough(task.isCompleted)
                                         
@@ -1674,11 +1684,11 @@ struct SimpleCategoryDetailView: View {
                     }
                 }
             }
-            .navigationTitle("Category Details")
+            .navigationTitle("nav.category_details".localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Close") {
+                    Button("action.close".localized) {
                         let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                         impactFeedback.impactOccurred()
                         dismiss()

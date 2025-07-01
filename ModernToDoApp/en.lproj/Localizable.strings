@@ -1,0 +1,242 @@
+/* 
+  Localizable.strings
+  ModernToDoApp - English
+*/
+
+// MARK: - Tab Bar
+"tab.tasks" = "Tasks";
+"tab.categories" = "Categories";
+"tab.settings" = "Settings";
+"tab.insights" = "Insights";
+
+// MARK: - Navigation Titles
+"nav.tasks" = "Tasks";
+"nav.categories" = "Categories";
+"nav.settings" = "Settings";
+"nav.insights" = "Insights";
+"nav.new_task" = "New Task";
+"nav.edit_task" = "Edit Task";
+"nav.new_category" = "New Category";
+"nav.edit_category" = "Edit Category";
+
+// MARK: - General Actions
+"action.cancel" = "Cancel";
+"action.save" = "Save";
+"action.delete" = "Delete";
+"action.edit" = "Edit";
+"action.complete" = "Complete";
+"action.incomplete" = "Incomplete";
+"action.postpone" = "Postpone";
+"action.add" = "Add";
+
+// MARK: - Task List
+"task.no_tasks" = "No tasks found. Tap '+' to add a new task!";
+"task.no_search_results" = "No tasks found matching your search.";
+"task.search_placeholder" = "Search tasks...";
+"task.filter" = "Filter";
+"task.all_categories" = "All Categories";
+
+// MARK: - Task Sections
+"section.overdue" = "Overdue";
+"section.today" = "Today";
+"section.tomorrow" = "Tomorrow";
+"section.this_week" = "This Week";
+"section.upcoming" = "Upcoming";
+"section.completed" = "Completed";
+"section.no_due_date" = "No Due Date";
+
+// MARK: - Task Detail
+"task.title_placeholder" = "Task title";
+"task.notes_placeholder" = "Add notes (optional)";
+"task.priority" = "Priority";
+"task.due_date" = "Due Date";
+"task.category" = "Category";
+"task.repeat" = "Repeat";
+"task.recurring_requires_date" = "Recurring tasks require a due date";
+"task.next_occurrence" = "Next: %@";
+
+// MARK: - Priority Levels
+"priority.high" = "High";
+"priority.medium" = "Medium";
+"priority.low" = "Low";
+
+// MARK: - Recurrence Types
+"recurrence.none" = "None";
+"recurrence.daily" = "Daily";
+"recurrence.weekly" = "Weekly";
+"recurrence.monthly" = "Monthly";
+"recurrence.yearly" = "Yearly";
+"recurrence.daily_desc" = "Repeats every day";
+"recurrence.weekly_desc" = "Repeats every week";
+"recurrence.monthly_desc" = "Repeats every month";
+"recurrence.yearly_desc" = "Repeats every year";
+"recurrence.title" = "Recurrence";
+
+// MARK: - Category List
+"category.no_categories" = "No categories found. Tap '+' to add a new category!";
+"category.search_placeholder" = "Search categories...";
+"category.unnamed" = "Unnamed";
+
+// MARK: - Category Detail
+"category.name_placeholder" = "Category name";
+"category.color" = "Color";
+"category.icon" = "Icon";
+
+// MARK: - Settings
+"settings.appearance" = "Appearance";
+"settings.dark_mode" = "Dark Mode";
+"settings.dark_mode_footer" = "Automatically matches your system appearance on first launch.";
+"settings.language" = "Language";
+"settings.language_footer" = "Changes take effect immediately.";
+"settings.notifications" = "Notifications";
+"settings.enable_notifications" = "Enable Notifications";
+"settings.tasks" = "Tasks";
+"settings.show_completed" = "Show Completed Tasks";
+"settings.data" = "Data";
+"settings.clear_tasks" = "Clear All Tasks";
+"settings.clear_data" = "Clear All Data";
+"settings.about" = "About";
+"settings.version" = "Version";
+
+// MARK: - Language Options
+"language.english" = "English";
+"language.turkish" = "Türkçe";
+
+// MARK: - Alerts
+"alert.delete_task_title" = "Delete Task";
+"alert.delete_task_message" = "Are you sure you want to delete \"%@\"? This action cannot be undone.";
+"alert.delete_category_title" = "Delete Category";
+"alert.delete_category_message" = "Are you sure you want to delete \"%@\"? This action cannot be undone.";
+"alert.clear_tasks_title" = "Clear All Tasks";
+"alert.clear_tasks_message" = "Are you sure you want to delete all tasks? Categories will remain.";
+"alert.clear_data_title" = "Clear All Data";
+"alert.clear_data_message" = "Are you sure you want to delete all tasks and categories? This action cannot be undone.";
+
+// MARK: - Floating Action Button
+"fab.add_task" = "Add Task";
+"fab.add_category" = "Add Category";
+
+// MARK: - Date Formatting
+"date.today" = "Today";
+"date.tomorrow" = "Tomorrow";
+"date.yesterday" = "Yesterday";
+
+// MARK: - Task Card
+"task.created" = "Created";
+"task.updated" = "Updated";
+"task.due" = "Due";
+
+// MARK: - Additional General Actions
+"action.sort" = "Sort";
+"action.done" = "Done";
+"action.close" = "Close";
+"action.edit_category" = "Edit Category";
+"action.postpone_task" = "Postpone Task";
+
+// MARK: - Extended Task Details
+"task.title_section" = "Title";
+"task.notes_section" = "Notes";
+"task.recurrence_section" = "Recurrence";
+"task.set_due_date" = "Set due date";
+"task.select_priority" = "Select Priority";
+"task.recurring_description" = "A new task will be created automatically when you complete this task.";
+"task.untitled" = "Untitled Task";
+"task.progress_completed" = "% completed";
+"task.subtasks" = "subtasks";
+"task.status" = "Status";
+"task.status_completed" = "Completed";
+"task.status_pending" = "Pending";
+"task.description" = "Description";
+"task.subtasks_section" = "Subtasks";
+"task.completed_count" = "completed";
+"task.singular" = "task";
+"task.plural" = "tasks";
+
+// MARK: - Navigation Titles Extended
+"nav.task_details" = "Task Details";
+"nav.category_details" = "Category Details";
+
+// MARK: - Extended Category Details
+"category.name_section" = "Name";
+"category.statistics" = "Statistics";
+"category.create_first" = "Create First Category";
+
+// MARK: - Statistics and Metrics
+"stats.tasks" = "Tasks";
+"stats.total" = "total";
+"stats.pending" = "pending";
+"stats.done" = "done";
+"stats.created" = "Created";
+"stats.completed" = "Completed";
+
+// MARK: - Sort Options
+"sort.alphabetical" = "A → Z";
+"sort.newest_first" = "Newest First";
+
+// MARK: - Options
+"option.none" = "None";
+
+// MARK: - Date Formatting Extended
+"date.placeholder_example" = "e.g., 27/06/2025 14:30";
+"date.select_due_date" = "Select Due Date";
+
+// MARK: - Insights and Charts
+"insights.chart_title" = "Completed Tasks Over Time";
+"insights.no_data" = "No completed tasks yet";
+
+// MARK: - Notifications
+"notification.task_due_title" = "Task Due: %@";
+"notification.task_due_body" = "Your task is due now";
+"notification.task_due_prefix" = "Task Due:";
+
+// MARK: - Extended Alerts
+"alert.delete_all_tasks_title" = "Delete All Tasks";
+"alert.delete_all_tasks_message" = "Are you sure you want to delete all tasks from \"%@\"? This action cannot be undone.";
+"alert.language_changed_title" = "Language Changed";
+"alert.language_changed_message" = "Please restart the app to apply the language changes completely.";
+
+// MARK: - Restart Actions
+"action.restart_now" = "Restart Now";
+"action.restart_later" = "Later";
+
+// MARK: - Detail View Content
+"detail.all_tasks" = "All Tasks";
+"detail.completed_tasks" = "Completed Tasks";
+"detail.pending_tasks" = "Pending Tasks";
+"detail.no_tasks_yet" = "No Tasks Yet";
+"detail.no_completed_tasks" = "No Completed Tasks";
+"detail.no_pending_tasks" = "No Pending Tasks";
+"detail.tasks_will_appear_here" = "Tasks added to this category will appear here";
+"detail.complete_tasks_to_see" = "Complete some tasks to see them here";
+"detail.all_tasks_completed" = "All tasks in this category are completed!";
+
+// MARK: - Performance Settings
+"performance.ui_performance" = "UI Performance";
+"performance.use_optimized_list" = "Use Optimized Task List";
+"performance.enable_fps_monitoring" = "Enable FPS Monitoring";
+"performance.tasks_per_page" = "Tasks Per Page";
+"performance.data_management" = "Data Management";
+"performance.enable_prefetching" = "Enable Prefetching";
+"performance.enable_image_caching" = "Enable Image Caching";
+"performance.clear_all_caches" = "Clear All Caches";
+"performance.battery_optimization" = "Battery Optimization";
+"performance.enable_battery_opt" = "Enable Battery Optimization";
+"performance.battery_level" = "Battery Level";
+"performance.low_power_mode" = "Low Power Mode";
+"performance.enabled" = "Enabled";
+"performance.disabled" = "Disabled";
+"performance.network_status" = "Network Status";
+"performance.connection" = "Connection";
+"performance.low_data_mode" = "Low Data Mode";
+"performance.wifi" = "WiFi";
+"performance.cellular" = "Cellular";
+"performance.offline" = "Offline";
+"performance.unknown" = "Unknown";
+"performance.current_performance" = "Current Performance";
+"performance.fps" = "FPS";
+"performance.memory_usage" = "Memory Usage";
+"performance.core_data_operations" = "Core Data Operations";
+"performance.actions" = "Actions";
+"performance.force_memory_cleanup" = "Force Memory Cleanup";
+"performance.generate_report" = "Generate Performance Report";
+"performance.settings" = "Performance Settings";
