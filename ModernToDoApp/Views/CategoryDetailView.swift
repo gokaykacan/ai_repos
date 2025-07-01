@@ -14,17 +14,58 @@ struct CategoryDetailView: View {
     let category: TaskCategory?
     let isEditing: Bool
     
+    // Modern, accessible color palette with vibrant, distinct colors
     private let predefinedColors = [
+        // Primary vibrant colors
         "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7",
-        "#DDA0DD", "#98D8C8", "#F7DC6F", "#BB8FCE", "#85C1E9",
-        "#F8C471", "#82E0AA", "#F1948A", "#85C1E9", "#D7BDE2"
+        "#DDA0DD", "#FF8A65", "#81C784", "#64B5F6", "#FFB74D",
+        
+        // Secondary rich colors  
+        "#E57373", "#4DB6AC", "#7986CB", "#AED581", "#FFD54F",
+        "#F06292", "#FF7043", "#26A69A", "#42A5F5", "#FFA726",
+        
+        // Deep accent colors
+        "#8E24AA", "#D32F2F", "#1976D2", "#388E3C", "#F57C00",
+        "#C2185B", "#5D4037", "#455A64", "#512DA8", "#00796B"
     ]
     
-    private let categoryIcons = [
-        "folder", "person", "house", "car", "briefcase",
-        "heart", "star", "flag", "bookmark", "tag",
-        "calendar", "clock", "location", "phone", "envelope"
+    // Comprehensive, meaningful SF Symbol icons optimized for categories
+    private let allCategoryIcons = [
+        // Work & Professional
+        "briefcase.fill", "building.2.fill", "laptopcomputer", "doc.text.fill", "chart.bar.fill",
+        
+        // Personal & Life
+        "person.fill", "heart.fill", "house.fill", "car.fill", "airplane",
+        
+        // Activities & Hobbies  
+        "sportscourt.fill", "book.fill", "music.note", "camera.fill", "gamecontroller.fill",
+        
+        // Organization & Planning
+        "folder.fill", "calendar", "clock.fill", "flag.fill", "star.fill",
+        
+        // Communication & Social
+        "phone.fill", "envelope.fill", "message.fill", "person.2.fill", "globe",
+        
+        // Health & Wellness
+        "cross.case.fill", "leaf.fill", "dumbbell.fill", "bed.double.fill", "fork.knife",
+        
+        // Shopping & Finance
+        "cart.fill", "creditcard.fill", "banknote", "bag.fill", "gift.fill",
+        
+        // Education & Learning
+        "graduationcap.fill", "pencil", "book.closed.fill", "lightbulb.fill", "studentdesk",
+        
+        // Technology & Digital
+        "desktopcomputer", "iphone", "wifi", "cloud.fill", "externaldrive.fill"
     ]
+    
+    // Filtered icons that are actually available in the current iOS version
+    private var categoryIcons: [String] {
+        return allCategoryIcons.filter { iconName in
+            // Check if the SF Symbol exists in the current iOS version
+            UIImage(systemName: iconName) != nil
+        }
+    }
     
     init(category: TaskCategory? = nil) {
         self.category = category
@@ -32,7 +73,7 @@ struct CategoryDetailView: View {
         
         self._name = State(initialValue: category?.name ?? "")
         self._selectedColor = State(initialValue: Color(hex: category?.colorHex ?? "#007AFF"))
-        self._selectedIcon = State(initialValue: category?.icon ?? "folder")
+        self._selectedIcon = State(initialValue: category?.icon ?? "folder.fill")
     }
     
     var body: some View {
@@ -78,19 +119,69 @@ struct CategoryDetailView: View {
     }
     
     private var colorSection: some View {
-        Section("category.color".localized) {
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5), spacing: 12) {
-                ForEach(predefinedColors, id: \.self) { colorHex in
-                    Circle()
-                        .fill(Color(hex: colorHex))
-                        .frame(width: 40, height: 40)
-                        .overlay(
-                            Circle()
-                                .stroke(selectedColor.hexString == colorHex ? Color.primary : Color.clear, lineWidth: 3)
-                        )
-                        .onTapGesture {
-                            selectedColor = Color(hex: colorHex)
-                        }
+        Section {
+            VStack(alignment: .leading, spacing: 16) {
+                // Color preview with live icon demonstration
+                HStack(spacing: 12) {
+                    Text("category.color".localized)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    
+                    Spacer()
+                    
+                    // Live preview of selected color with icon
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(selectedColor)
+                            .frame(width: 24, height: 24)
+                            .overlay(
+                                Image(systemName: selectedIcon)
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.white)
+                            )
+                        
+                        Text("category.preview".localized)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                // Enhanced color grid with better spacing and feedback
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6), spacing: 12) {
+                    ForEach(predefinedColors, id: \.self) { colorHex in
+                        let color = Color(hex: colorHex)
+                        let isSelected = selectedColor.hexString == colorHex
+                        
+                        Circle()
+                            .fill(color)
+                            .frame(width: 44, height: 44)
+                            .overlay(
+                                // Selection indicator with checkmark
+                                Circle()
+                                    .stroke(Color.primary, lineWidth: isSelected ? 3 : 0)
+                                    .animation(.easeInOut(duration: 0.2), value: isSelected)
+                            )
+                            .overlay(
+                                // Checkmark for selected color
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .opacity(isSelected ? 1 : 0)
+                                    .scaleEffect(isSelected ? 1.0 : 0.5)
+                                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
+                            )
+                            .scaleEffect(isSelected ? 1.1 : 1.0)
+                            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
+                            .onTapGesture {
+                                // Haptic feedback
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.impactOccurred()
+                                
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    selectedColor = color
+                                }
+                            }
+                    }
                 }
             }
             .padding(.vertical, 8)
@@ -98,27 +189,71 @@ struct CategoryDetailView: View {
     }
     
     private var iconSection: some View {
-        Section("category.icon".localized) {
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5), spacing: 12) {
-                ForEach(categoryIcons, id: \.self) { icon in
-                    Circle()
-                        .fill(selectedColor.opacity(0.2))
-                        .frame(width: 40, height: 40)
-                        .overlay(
-                            Image(systemName: icon)
-                                .font(.title3)
-                                .foregroundColor(selectedColor)
-                        )
-                        .overlay(
-                            Circle()
-                                .stroke(selectedIcon == icon ? Color.primary : Color.clear, lineWidth: 2)
-                        )
-                        .onTapGesture {
-                            selectedIcon = icon
+        Section {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("category.icon".localized)
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                
+                // Enhanced icon grid with responsive columns and better visual hierarchy
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: adaptiveColumnCount), spacing: 16) {
+                    ForEach(categoryIcons, id: \.self) { icon in
+                        let isSelected = selectedIcon == icon
+                        
+                        VStack(spacing: 4) {
+                            // Icon container with modern design
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(isSelected ? selectedColor : selectedColor.opacity(0.15))
+                                .frame(width: 50, height: 50)
+                                .overlay(
+                                    Image(systemName: icon)
+                                        .font(.system(size: 20, weight: .medium))
+                                        .foregroundColor(isSelected ? .white : selectedColor)
+                                        .animation(.easeInOut(duration: 0.2), value: isSelected)
+                                )
+                                .overlay(
+                                    // Selection border with rounded rectangle
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.primary, lineWidth: isSelected ? 2.5 : 0)
+                                        .animation(.easeInOut(duration: 0.2), value: isSelected)
+                                )
+                                .scaleEffect(isSelected ? 1.05 : 1.0)
+                                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
+                            
+                            // Icon accessibility label (optional, can be hidden for cleaner look)
+                            if isSelected {
+                                Circle()
+                                    .fill(selectedColor)
+                                    .frame(width: 6, height: 6)
+                                    .transition(.scale.combined(with: .opacity))
+                            }
                         }
+                        .onTapGesture {
+                            // Haptic feedback for icon selection
+                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                            impactFeedback.impactOccurred()
+                            
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                selectedIcon = icon
+                            }
+                        }
+                    }
                 }
             }
             .padding(.vertical, 8)
+        }
+    }
+    
+    // Adaptive column count based on device size
+    private var adaptiveColumnCount: Int {
+        // Get screen width to determine optimal column count
+        let screenWidth = UIScreen.main.bounds.width
+        if screenWidth > 428 { // iPhone 14 Pro Max width
+            return 6
+        } else if screenWidth > 390 { // iPhone 14 Pro width  
+            return 5
+        } else {
+            return 4 // iPhone SE and smaller devices
         }
     }
     

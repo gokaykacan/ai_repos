@@ -82,6 +82,7 @@
 "category.name_placeholder" = "Kategori adı";
 "category.color" = "Renk";
 "category.icon" = "İkon";
+"category.preview" = "Önizleme";
 
 // MARK: - Settings
 "settings.appearance" = "Görünüm";

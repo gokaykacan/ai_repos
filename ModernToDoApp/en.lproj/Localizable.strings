@@ -82,6 +82,7 @@
 "category.name_placeholder" = "Category name";
 "category.color" = "Color";
 "category.icon" = "Icon";
+"category.preview" = "Preview";
 
 // MARK: - Settings
 "settings.appearance" = "Appearance";
