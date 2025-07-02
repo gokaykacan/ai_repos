@@ -89,8 +89,8 @@ struct ModernToDoAppApp: App {
     @Environment(\.scenePhase) private var scenePhase
     
     init() {
-        // Request notification permissions
-        NotificationManager.shared.requestPermission()
+        // Initialize notification manager with improved system
+        NotificationManager.shared.initialize()
         
         // Initialize language manager (this must be done early)
         _ = LanguageManager.shared
@@ -112,9 +112,9 @@ struct ModernToDoAppApp: App {
                 }
                 .onChange(of: scenePhase) { newPhase in
                     if newPhase == .background {
-                        NotificationManager.shared.updateApplicationBadgeNumber()
+                        NotificationManager.shared.updateBadgeCount()
                     } else if newPhase == .active {
-                        NotificationManager.shared.clearAppBadge()
+                        // Notification manager automatically handles app active state
                         // Reapply dark mode preference when app becomes active
                         applyStoredDarkModePreference()
                     }

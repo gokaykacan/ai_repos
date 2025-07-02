@@ -352,11 +352,17 @@ struct TaskListView: View {
                                                         
                                                         do {
                                                             try viewContext.save()
+                                                            
+                                                            // Update badge count immediately after task completion change
+                                                            NotificationManager.shared.handleTaskCompletion()
                                                         } catch {
                                                             print("Error toggling task completion: \(error)")
                                                             // Rollback the change
                                                             task.isCompleted = wasCompleted
                                                             try? viewContext.save()
+                                                            
+                                                            // Update badge even after rollback to ensure consistency
+                                                            NotificationManager.shared.handleTaskCompletion()
                                                         }
                                                     }
                                                 }
@@ -470,6 +476,9 @@ struct TaskListView: View {
                 try viewContext.save()
                 print("Successfully deleted task: \(task.title ?? "Unknown")")
                 
+                // Update badge count after task deletion
+                NotificationManager.shared.handleTaskDeletion()
+                
                 // Success haptic feedback
                 let successFeedback = UINotificationFeedbackGenerator()
                 successFeedback.notificationOccurred(.success)
@@ -507,6 +516,9 @@ struct TaskListView: View {
             do {
                 try viewContext.save()
                 print("Successfully deleted \(tasksToDelete.count) tasks")
+                
+                // Update badge count after multiple task deletion
+                NotificationManager.shared.handleTaskDeletion()
                 
                 // Success haptic feedback
                 let successFeedback = UINotificationFeedbackGenerator()
@@ -583,6 +595,9 @@ struct PostponeTaskView: View {
                                         NotificationManager.shared.scheduleNotification(for: task)
                                     }
                                 }
+                                
+                                // Update badge count after postponing task
+                                NotificationManager.shared.handleTaskStateChange()
                             } catch {
                                 print("Error postponing task: \(error)")
                             }
@@ -744,12 +759,19 @@ struct TaskCardView: View {
             
             do {
                 try viewContext.save()
+                
+                // Update badge count immediately after task completion change
+                NotificationManager.shared.handleTaskCompletion()
+                
                 onTaskUpdated?()
             } catch {
                 print("Error toggling task completion: \(error)")
                 // Rollback the change
                 task.isCompleted = wasCompleted
                 try? viewContext.save()
+                
+                // Update badge even after rollback to ensure consistency
+                NotificationManager.shared.handleTaskCompletion()
             }
         }
     }
@@ -1406,6 +1428,9 @@ struct SettingsView: View {
                 try viewContext.save()
                 
                 print("Successfully cleared all data")
+                
+                // Clear badge count after clearing all data
+                NotificationManager.shared.handleTaskDeletion()
             } catch {
                 print("Error clearing data: \(error)")
             }
@@ -1429,6 +1454,9 @@ struct SettingsView: View {
                 try viewContext.save()
                 
                 print("Successfully cleared all tasks")
+                
+                // Clear badge count after clearing all tasks
+                NotificationManager.shared.handleTaskDeletion()
             } catch {
                 print("Error clearing tasks: \(error)")
             }

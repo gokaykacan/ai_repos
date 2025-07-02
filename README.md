@@ -162,7 +162,45 @@ xcodebuild -project ModernToDoApp.xcodeproj -scheme ModernToDoApp test
 - ✅ Show/hide completed tasks
 - ✅ Data management options
 
-## 🔄 Recent Updates (v2.1)
+## 🔄 Recent Updates (v2.2) - 🔔 NOTIFICATION SYSTEM OVERHAUL
+
+### 🚀 Major Notification System Refactor
+- **Complete NotificationManager rewrite** with enhanced reliability and performance
+- **Real-time badge updates** - Badge numbers update instantly without app restart
+- **Improved notification scheduling** using UNTimeIntervalNotificationTrigger for better reliability
+- **30-second badge update timer** ensures continuous badge accuracy
+- **App lifecycle integration** with automatic badge management
+- **Enhanced debugging** with comprehensive logging and monitoring tools
+
+### 🏷️ Smart Badge Management System
+- **Accurate badge counting** - Only counts overdue tasks (past due date)
+- **Real-time synchronization** - Badge updates immediately on task changes
+- **Automatic badge clearing** when app becomes active
+- **Memory-efficient calculation** with optimized Core Data queries
+- **Error resilient** - Badge consistency maintained even during failures
+
+### ⚡ Performance & Reliability Improvements
+- **UNTimeIntervalNotificationTrigger** instead of calendar-based triggers for better timing
+- **Synchronous permission checking** for instant notification authorization status
+- **Automatic notification cleanup** removes stale delivered notifications
+- **Background processing optimization** with proper thread management
+- **Memory leak prevention** with weak references and proper observer cleanup
+
+### 🔧 Technical Architecture Improvements
+- **Centralized initialization** via `NotificationManager.shared.initialize()`
+- **Observer pattern integration** for app lifecycle events
+- **Convenient extension methods** for different task state changes
+- **Enhanced error handling** with rollback support and consistency checks
+- **Timer-based badge updates** ensure accuracy even during extended app usage
+
+### 🎯 User Experience Enhancements
+- **Instant badge updates** on task completion, deletion, and editing
+- **Consistent notification behavior** across all task operations
+- **Reliable notification delivery** with improved scheduling system
+- **Better app responsiveness** with optimized badge calculation
+- **Seamless background/foreground transitions** with automatic state management
+
+## 🔄 Previous Updates (v2.1)
 
 ### App Icons & Visual Assets
 - Added complete professional app icon set

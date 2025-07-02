@@ -2,9 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## 🎉 BUILD FIXED - APP WORKS! ✨ COMPREHENSIVE FEATURES COMPLETE!
+## 🎉 BUILD FIXED - APP WORKS! ✨ NOTIFICATION SYSTEM OVERHAULED!
 
-The ModernToDoApp now builds successfully and runs as a high-performance iOS To-Do application with comprehensive localization, enhanced notifications, modern app icons, and advanced category management.
+The ModernToDoApp now builds successfully and runs as a high-performance iOS To-Do application with a completely refactored notification system, real-time badge updates, comprehensive localization, enhanced notifications, modern app icons, and advanced category management.
+
+### 🔔 LATEST UPDATE: NOTIFICATION SYSTEM REFACTOR (v2.2)
+- **Complete NotificationManager rewrite** for maximum reliability
+- **Real-time badge updates** - No more waiting for app restart!
+- **30-second timer system** ensures badge accuracy
+- **UNTimeIntervalNotificationTrigger** for improved notification delivery
+- **Smart badge counting** - Only overdue tasks (past due date)
+- **Enhanced debugging** with comprehensive logging
+- **Memory leak prevention** and observer cleanup
 
 ## Project Overview
 

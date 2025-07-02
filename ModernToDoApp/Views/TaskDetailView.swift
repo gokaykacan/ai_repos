@@ -284,6 +284,9 @@ struct TaskDetailView: View {
                     }
                 }
                 
+                // Update badge count after task creation or editing
+                NotificationManager.shared.handleTaskStateChange()
+                
                 dismiss()
             } catch {
                 print("Error saving task: \(error)")
