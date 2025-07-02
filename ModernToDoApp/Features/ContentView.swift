@@ -1355,6 +1355,13 @@ struct SettingsView: View {
                                 UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
                             }
                         }
+                    
+                    Button("🔍 Run Badge Diagnostic") {
+                        print("Starting badge diagnostic...")
+                        NotificationManager.shared.checkBadgePermissionSpecifically()
+                        NotificationManager.shared.logPendingNotifications()
+                    }
+                    .foregroundColor(.blue)
                 }
                 
                 Section("settings.tasks".localized) {

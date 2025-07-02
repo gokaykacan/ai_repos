@@ -58,11 +58,13 @@ class NotificationManager: ObservableObject {
     // MARK: - Permission Management
     
     func requestPermission() {
-        notificationCenter.requestAuthorization(options: [.alert, .badge, .sound, .criticalAlert]) { [weak self] granted, error in
+        // Remove .criticalAlert for broader device compatibility
+        notificationCenter.requestAuthorization(options: [.alert, .badge, .sound]) { [weak self] granted, error in
             DispatchQueue.main.async {
                 if granted {
                     print("✅ Notification permission granted")
                     self?.setupNotificationCategories()
+                    self?.checkBadgePermissionSpecifically()
                     self?.updateBadgeCount()
                 } else if let error = error {
                     print("❌ Notification permission error: \(error.localizedDescription)")
@@ -73,17 +75,45 @@ class NotificationManager: ObservableObject {
         }
     }
     
+    func checkBadgePermissionSpecifically() {
+        notificationCenter.getNotificationSettings { settings in
+            DispatchQueue.main.async {
+                let canShowBadge = settings.badgeSetting == .enabled
+                print("🏷️ Badge permission specifically: \(canShowBadge)")
+                print("🔔 Badge setting: \(settings.badgeSetting.rawValue)")
+                print("📱 Device: \(UIDevice.current.model), iOS: \(UIDevice.current.systemVersion)")
+                
+                if !canShowBadge {
+                    print("⚠️ Badge permission is disabled - badges won't show")
+                }
+            }
+        }
+    }
+    
     func checkNotificationSettings() -> Bool {
         var isAuthorized = false
+        var canShowBadge = false
         let semaphore = DispatchSemaphore(value: 0)
         
         notificationCenter.getNotificationSettings { settings in
             isAuthorized = settings.authorizationStatus == .authorized
+            canShowBadge = settings.badgeSetting == .enabled
+            
+            // Enhanced logging for debugging device differences
+            print("📊 Authorization: \(settings.authorizationStatus.rawValue)")
+            print("🏷️ Badge setting: \(settings.badgeSetting.rawValue)")
+            print("📱 Device: \(UIDevice.current.model)")
+            print("🍎 iOS: \(UIDevice.current.systemVersion)")
+            
             semaphore.signal()
         }
         
         semaphore.wait()
-        return isAuthorized
+        
+        // Both authorization and badge permission must be granted
+        let result = isAuthorized && canShowBadge
+        print("✅ Final permission check: \(result) (auth: \(isAuthorized), badge: \(canShowBadge))")
+        return result
     }
     
     private func setupNotificationCategories() {
