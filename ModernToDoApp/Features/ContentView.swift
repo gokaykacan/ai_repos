@@ -951,18 +951,18 @@ struct CategoriesView: View {
                                 showingDeleteCompletedAlert = true
                             }
                             .tint(.green)
-                            
-                            Button("action.delete_all_tasks".localized) {
-                                categoryToDeleteTasksFrom = category
-                                showingDeleteTasksAlert = true
-                            }
-                            .tint(.orange)
                         }
                         .swipeActions(edge: .leading) {
                             Button("action.delete_category".localized, role: .destructive) {
                                 categoryToDelete = category
                                 showingDeleteCategoryAlert = true
                             }
+                            
+                            Button("action.delete_all_tasks".localized) {
+                                categoryToDeleteTasksFrom = category
+                                showingDeleteTasksAlert = true
+                            }
+                            .tint(.orange)
                         }
                     }
                     .onDelete(perform: deleteCategories)
