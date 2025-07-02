@@ -46,30 +46,41 @@ struct TaskDetailView: View {
     }
     
     var body: some View {
-        NavigationView {
-            Form {
-                titleSection
-                notesSection
-                prioritySection
-                dueDateSection
-                recurrenceSection
-                categorySection
+        if #available(iOS 16.0, *) {
+            NavigationStack {
+                taskForm
             }
-            .navigationTitle(isEditing ? "nav.edit_task".localized : "nav.new_task".localized)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("action.cancel".localized) {
-                        dismiss()
-                    }
+        } else {
+            NavigationView {
+                taskForm
+            }
+            .navigationViewStyle(StackNavigationViewStyle())
+        }
+    }
+    
+    private var taskForm: some View {
+        Form {
+            titleSection
+            notesSection
+            prioritySection
+            dueDateSection
+            recurrenceSection
+            categorySection
+        }
+        .navigationTitle(isEditing ? "nav.edit_task".localized : "nav.new_task".localized)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("action.cancel".localized) {
+                    dismiss()
                 }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("action.save".localized) {
-                        saveTask()
-                    }
-                    .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("action.save".localized) {
+                    saveTask()
                 }
+                .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
         .simultaneousGesture(

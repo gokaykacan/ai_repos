@@ -64,7 +64,6 @@ class NotificationManager: ObservableObject {
                 if granted {
                     print("✅ Notification permission granted")
                     self?.setupNotificationCategories()
-                    self?.checkBadgePermissionSpecifically()
                     self?.updateBadgeCount()
                 } else if let error = error {
                     print("❌ Notification permission error: \(error.localizedDescription)")
@@ -75,20 +74,6 @@ class NotificationManager: ObservableObject {
         }
     }
     
-    func checkBadgePermissionSpecifically() {
-        notificationCenter.getNotificationSettings { settings in
-            DispatchQueue.main.async {
-                let canShowBadge = settings.badgeSetting == .enabled
-                print("🏷️ Badge permission specifically: \(canShowBadge)")
-                print("🔔 Badge setting: \(settings.badgeSetting.rawValue)")
-                print("📱 Device: \(UIDevice.current.model), iOS: \(UIDevice.current.systemVersion)")
-                
-                if !canShowBadge {
-                    print("⚠️ Badge permission is disabled - badges won't show")
-                }
-            }
-        }
-    }
     
     func checkNotificationSettings() -> Bool {
         var isAuthorized = false
@@ -365,17 +350,6 @@ class NotificationManager: ObservableObject {
     
     // MARK: - Utility Methods
     
-    func logPendingNotifications() {
-        notificationCenter.getPendingNotificationRequests { requests in
-            print("📋 Pending notifications: \(requests.count)")
-            for request in requests {
-                if let trigger = request.trigger as? UNTimeIntervalNotificationTrigger {
-                    let fireDate = Date().addingTimeInterval(trigger.timeInterval)
-                    print("  - \(request.content.title) at \(fireDate)")
-                }
-            }
-        }
-    }
     
     func rescheduleAllTaskNotifications() {
         print("🔄 Rescheduling all task notifications")

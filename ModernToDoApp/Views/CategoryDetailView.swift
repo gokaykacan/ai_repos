@@ -77,38 +77,74 @@ struct CategoryDetailView: View {
     }
     
     var body: some View {
-        NavigationView {
-            Form {
-                nameSection
-                colorSection
-                iconSection
-                if isEditing {
-                    statsSection
-                }
-            }
-            .navigationTitle(isEditing ? "nav.edit_category".localized : "nav.new_category".localized)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("action.cancel".localized) {
-                        dismiss()
+        if #available(iOS 16.0, *) {
+            NavigationStack {
+                Form {
+                    nameSection
+                    colorSection
+                    iconSection
+                    if isEditing {
+                        statsSection
                     }
                 }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("action.save".localized) {
-                        saveCategory()
+                .navigationTitle(isEditing ? "nav.edit_category".localized : "nav.new_category".localized)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button("action.cancel".localized) {
+                            dismiss()
+                        }
                     }
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("action.save".localized) {
+                            saveCategory()
+                        }
+                        .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
                 }
             }
+            .simultaneousGesture(
+                TapGesture()
+                    .onEnded { _ in
+                        UIApplication.shared.dismissKeyboard()
+                    }
+            )
+        } else {
+            NavigationView {
+                Form {
+                    nameSection
+                    colorSection
+                    iconSection
+                    if isEditing {
+                        statsSection
+                    }
+                }
+                .navigationTitle(isEditing ? "nav.edit_category".localized : "nav.new_category".localized)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button("action.cancel".localized) {
+                            dismiss()
+                        }
+                    }
+                    
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("action.save".localized) {
+                            saveCategory()
+                        }
+                        .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                }
+                .navigationViewStyle(StackNavigationViewStyle())
+            }
+            .simultaneousGesture(
+                TapGesture()
+                    .onEnded { _ in
+                        UIApplication.shared.dismissKeyboard()
+                    }
+            )
         }
-        .simultaneousGesture(
-            TapGesture()
-                .onEnded { _ in
-                    UIApplication.shared.dismissKeyboard()
-                }
-        )
     }
     
     private var nameSection: some View {
@@ -244,17 +280,10 @@ struct CategoryDetailView: View {
         }
     }
     
-    // Adaptive column count based on device size
+    // Fixed column count to prevent layout feedback loops
     private var adaptiveColumnCount: Int {
-        // Get screen width to determine optimal column count
-        let screenWidth = UIScreen.main.bounds.width
-        if screenWidth > 428 { // iPhone 14 Pro Max width
-            return 6
-        } else if screenWidth > 390 { // iPhone 14 Pro width  
-            return 5
-        } else {
-            return 4 // iPhone SE and smaller devices
-        }
+        // Use fixed column count to prevent recursive layout on iPad
+        return 5
     }
     
     private var statsSection: some View {

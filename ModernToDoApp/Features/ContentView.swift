@@ -177,18 +177,32 @@ struct TaskListView: View {
     
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                // Search Section
-                VStack(spacing: 0) {
-                    UltraMinimalistSearchBar(
-                        text: $searchText,
-                        placeholder: "task.search_placeholder".localized
-                    )
-                    .padding(.horizontal, 20)
-                    .padding(.top, 12)
-                    .padding(.bottom, 16)
+        Group {
+            if #available(iOS 16.0, *) {
+                NavigationStack {
+                    taskListContent
                 }
+            } else {
+                NavigationView {
+                    taskListContent
+                }
+                .navigationViewStyle(StackNavigationViewStyle())
+            }
+        }
+    }
+    
+    private var taskListContent: some View {
+        VStack(spacing: 0) {
+            // Search Section
+            VStack(spacing: 0) {
+                UltraMinimalistSearchBar(
+                    text: $searchText,
+                    placeholder: "task.search_placeholder".localized
+                )
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 16)
+            }
                 
                 // Filter Section (separate from search)
                 if !categories.isEmpty {
@@ -414,8 +428,27 @@ struct TaskListView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showingAddTask) {
-                TaskDetailView(category: selectedCategory)
+            .alert("alert.delete_task_title".localized, isPresented: $showingDeleteTaskAlert) {
+                Button("action.cancel".localized, role: .cancel) { }
+                Button("action.delete".localized, role: .destructive) {
+                    if let task = taskToDelete {
+                        deleteTask(task)
+                    }
+                }
+            } message: {
+                Text("alert.delete_task_message".localized(with: taskToDelete?.title ?? "this task"))
+            }
+            .sheet(item: $activeSheet) { sheetType in
+                switch sheetType {
+                case .detail(let task):
+                    SimpleTaskDetailView(task: task)
+                case .edit(let task):
+                    TaskDetailView(task: task)
+                case .postpone(let task, let initialDate):
+                    PostponeTaskView(task: task, initialDate: initialDate, viewContext: viewContext, notificationsEnabled: notificationsEnabled) {
+                        activeSheet = nil
+                    }
+                }
             }
             .alert("alert.delete_task_title".localized, isPresented: $showingDeleteTaskAlert) {
                 Button("action.cancel".localized, role: .cancel) { }
@@ -427,18 +460,17 @@ struct TaskListView: View {
             } message: {
                 Text("alert.delete_task_message".localized(with: taskToDelete?.title ?? "this task"))
             }
-        }
-        .onAppear {
-            startOverdueTimer()
-        }
-        .onDisappear {
-            stopOverdueTimer()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-            // Refresh immediately when app comes to foreground
-            refreshTrigger = Date()
-        }
-        .dismissKeyboardSafely()
+            .onAppear {
+                startOverdueTimer()
+            }
+            .onDisappear {
+                stopOverdueTimer()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                // Refresh immediately when app comes to foreground
+                refreshTrigger = Date()
+            }
+            .dismissKeyboardSafely()
     }
     
     // MARK: - Timer Functions for Real-time Overdue Updates
@@ -849,8 +881,22 @@ struct CategoriesView: View {
     }
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
+        Group {
+            if #available(iOS 16.0, *) {
+                NavigationStack {
+                    categoriesContent
+                }
+            } else {
+                NavigationView {
+                    categoriesContent
+                }
+                .navigationViewStyle(StackNavigationViewStyle())
+            }
+        }
+    }
+    
+    private var categoriesContent: some View {
+        VStack(spacing: 0) {
                 // Search Section
                 VStack(spacing: 0) {
                     UltraMinimalistSearchBar(
@@ -1024,8 +1070,7 @@ struct CategoriesView: View {
             } message: {
                 Text("alert.delete_completed_message".localized(with: categoryToDeleteCompletedFrom?.name ?? "this category"))
             }
-        }
-        .dismissKeyboardSafely()
+            .dismissKeyboardSafely()
     }
     
     private func deleteCategories(offsets: IndexSet) {
@@ -1324,8 +1369,22 @@ struct SettingsView: View {
     @ObservedObject private var languageManager = LanguageManager.shared
     
     var body: some View {
-        NavigationView {
-            Form {
+        Group {
+            if #available(iOS 16.0, *) {
+                NavigationStack {
+                    settingsForm
+                }
+            } else {
+                NavigationView {
+                    settingsForm
+                }
+                .navigationViewStyle(StackNavigationViewStyle())
+            }
+        }
+    }
+    
+    private var settingsForm: some View {
+        Form {
                 Section {
                     Toggle("settings.dark_mode".localized, isOn: $isDarkMode)
                 } header: {
@@ -1355,13 +1414,6 @@ struct SettingsView: View {
                                 UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
                             }
                         }
-                    
-                    Button("🔍 Run Badge Diagnostic") {
-                        print("Starting badge diagnostic...")
-                        NotificationManager.shared.checkBadgePermissionSpecifically()
-                        NotificationManager.shared.logPendingNotifications()
-                    }
-                    .foregroundColor(.blue)
                 }
                 
                 Section("settings.tasks".localized) {
@@ -1407,8 +1459,7 @@ struct SettingsView: View {
             } message: {
                 Text("alert.clear_tasks_message".localized)
             }
-        }
-        .dismissKeyboardOnFormTap()
+            .dismissKeyboardOnFormTap()
     }
     
     private func clearAllData() {

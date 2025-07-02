@@ -13,11 +13,23 @@ struct ProductivityChartView: View {
     @State private var dailyCompletions: [DailyCompletion] = []
 
     var body: some View {
-        NavigationView {
-            VStack {
-                Text("insights.chart_title".localized)
-                    .font(.headline)
-                    .padding()
+        if #available(iOS 16.0, *) {
+            NavigationStack {
+                chartContent
+            }
+        } else {
+            NavigationView {
+                chartContent
+            }
+            .navigationViewStyle(StackNavigationViewStyle())
+        }
+    }
+    
+    private var chartContent: some View {
+        VStack {
+            Text("insights.chart_title".localized)
+                .font(.headline)
+                .padding()
 
                 if dailyCompletions.isEmpty {
                     ContentUnavailableView("insights.no_data".localized, systemImage: "chart.bar.fill")
@@ -49,7 +61,6 @@ struct ProductivityChartView: View {
             }
             .navigationTitle("nav.insights".localized)
             .onAppear(perform: loadDailyCompletions)
-        }
     }
 
     private func loadDailyCompletions() {
