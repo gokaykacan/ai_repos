@@ -307,9 +307,14 @@ class NotificationManager: ObservableObject {
     func updateBadgeCount() {
         let badgeCount = getCurrentBadgeCount()
         
-        DispatchQueue.main.async {
-            UIApplication.shared.applicationIconBadgeNumber = badgeCount
-            print("🏷️ Updated app badge to: \(badgeCount)")
+        DispatchQueue.main.async { [notificationCenter] in
+            notificationCenter.setBadgeCount(badgeCount) { error in
+                if let error = error {
+                    print("❌ Failed to set badge count: \(error.localizedDescription)")
+                } else {
+                    print("🏷️ Updated app badge to: \(badgeCount)")
+                }
+            }
         }
     }
     
@@ -337,9 +342,14 @@ class NotificationManager: ObservableObject {
     }
     
     func clearAppBadge() {
-        DispatchQueue.main.async {
-            UIApplication.shared.applicationIconBadgeNumber = 0
-            print("✅ Cleared app badge")
+        DispatchQueue.main.async { [notificationCenter] in
+            notificationCenter.setBadgeCount(0) { error in
+                if let error = error {
+                    print("❌ Failed to clear app badge: \(error.localizedDescription)")
+                } else {
+                    print("✅ Cleared app badge")
+                }
+            }
         }
     }
     

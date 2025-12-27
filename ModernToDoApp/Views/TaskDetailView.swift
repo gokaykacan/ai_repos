@@ -130,15 +130,26 @@ struct TaskDetailView: View {
     
     private var dueDateSection: some View {
         Section("task.due_date".localized) {
-            Toggle("task.set_due_date".localized, isOn: $hasDueDate)
-                .onChange(of: hasDueDate) { enabled in
-                    if enabled && dueDate == nil {
-                        dueDate = Calendar.current.date(byAdding: .day, value: 1, to: Date())
-                    } else if !enabled {
-                        dueDate = nil
+            if #available(iOS 17.0, *) {
+                Toggle("task.set_due_date".localized, isOn: $hasDueDate)
+                    .onChange(of: hasDueDate) { _, enabled in
+                        if enabled && dueDate == nil {
+                            dueDate = Calendar.current.date(byAdding: .day, value: 1, to: Date())
+                        } else if !enabled {
+                            dueDate = nil
+                        }
                     }
-                }
-            
+            } else {
+                Toggle("task.set_due_date".localized, isOn: $hasDueDate)
+                    .onChange(of: hasDueDate) { enabled in
+                        if enabled && dueDate == nil {
+                            dueDate = Calendar.current.date(byAdding: .day, value: 1, to: Date())
+                        } else if !enabled {
+                            dueDate = nil
+                        }
+                    }
+            }
+
             if hasDueDate {
                 CustomDatePickerField(date: $dueDate)
             }

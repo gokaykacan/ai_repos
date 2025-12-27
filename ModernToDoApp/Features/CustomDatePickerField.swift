@@ -10,7 +10,7 @@ struct CustomDatePickerField: View {
         HStack {
             TextField("date.placeholder_example".localized, text: $dateString)
                 .keyboardType(.default)
-                .onChange(of: dateString) { newValue in
+                .onChange(of: dateString) { oldValue, newValue in
                     if let parsedDate = parseDate(from: newValue) {
                         date = parsedDate
                     }

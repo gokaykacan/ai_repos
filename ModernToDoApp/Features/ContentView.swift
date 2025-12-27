@@ -1405,10 +1405,10 @@ struct SettingsView: View {
                 
                 Section("settings.notifications".localized) {
                     Toggle("settings.enable_notifications".localized, isOn: $notificationsEnabled)
-                        .onChange(of: notificationsEnabled) { enabled in
-                            if enabled {
+                        .onChange(of: notificationsEnabled) { oldValue, newValue in
+                            if newValue {
                                 NotificationManager.shared.requestPermission()
-                                NotificationManager.shared.checkNotificationSettings()
+                                _ = NotificationManager.shared.checkNotificationSettings()
                             } else {
                                 // Cancel all pending notifications when disabled
                                 UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
@@ -1418,6 +1418,9 @@ struct SettingsView: View {
                 
                 Section("settings.tasks".localized) {
                     Toggle("settings.show_completed".localized, isOn: $showCompletedTasks)
+                        .onChange(of: showCompletedTasks) { oldValue, newValue in
+                            // No additional action needed, just using newValue to replace old single param
+                        }
                 }
                 
                 

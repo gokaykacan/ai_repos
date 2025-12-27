@@ -107,13 +107,13 @@ struct ModernToDoAppApp: App {
                     // Apply stored dark mode preference on app startup
                     applyStoredDarkModePreference()
                 }
-                .onChange(of: isDarkMode) { newValue in
-                    applyDarkModePreference(newValue)
+                .onChange(of: isDarkMode) {
+                    applyDarkModePreference(isDarkMode)
                 }
-                .onChange(of: scenePhase) { newPhase in
-                    if newPhase == .background {
+                .onChange(of: scenePhase) { oldValue, newValue in
+                    if newValue == .background {
                         NotificationManager.shared.updateBadgeCount()
-                    } else if newPhase == .active {
+                    } else if newValue == .active {
                         // Notification manager automatically handles app active state
                         // Reapply dark mode preference when app becomes active
                         applyStoredDarkModePreference()
